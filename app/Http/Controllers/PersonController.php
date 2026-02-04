@@ -54,6 +54,16 @@ class PersonController extends Controller
             'biography'        => 'nullable|string',
         ]);
 
+        // 💡 Автологика: девичья фамилия
+        if (
+            ($data['gender'] ?? null) === 'female'
+            && empty($data['birth_last_name'])
+            && !empty($data['last_name'])
+        ) {
+            $data['birth_last_name'] = $data['last_name'];
+        }
+
+
         if (($data['birth_date'] ?? '') === '') {
             $data['birth_date'] = null;
         }
@@ -262,6 +272,15 @@ class PersonController extends Controller
             'birth_date' => 'nullable|string|max:20',
             'death_date' => 'nullable|string|max:20',
         ]);
+
+// 💡 Автологика: девичья фамилия
+        if (
+            ($data['gender'] ?? null) === 'female'
+            && empty($data['birth_last_name'])
+            && !empty($data['last_name'])
+        ) {
+            $data['birth_last_name'] = $data['last_name'];
+        }
 
         if (($data['birth_date'] ?? '') === '') {
             $data['birth_date'] = null;
