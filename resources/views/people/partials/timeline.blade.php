@@ -135,10 +135,9 @@
 
                                     {{-- EDIT --}}
                                     @if(!$isSystem)
-                                        <div id="event-edit-{{ $eventId }}"
-                                             style="display:none;">
+                                        <div id="event-edit-{{ $eventId }}" style="display:none;">
                                             <form method="POST"
-                                                  action="{{ route('events.update', [$person, $event['id']]) }}"
+                                                  action="{{ route('events.update', [$person, $event['id']]) }}">
                                                 @csrf
                                                 @method('PATCH')
 
@@ -147,7 +146,8 @@
                                                         <input type="date"
                                                                name="event_date"
                                                                value="{{ $event['date'] }}"
-                                                               class="form-control form-control-sm">
+                                                               class="form-control form-control-sm"
+                                                               required>
                                                     </div>
 
                                                     <div class="col-md-2">
@@ -171,7 +171,7 @@
                                                           rows="2">{{ $event['description'] }}</textarea>
 
                                                 <div class="d-flex gap-2">
-                                                    <button class="btn btn-sm btn-primary">💾</button>
+                                                    <button type="submit" class="btn btn-sm btn-primary">💾 Сохранить</button>
                                                     <button type="button"
                                                             class="btn btn-sm btn-outline-secondary"
                                                             onclick="toggleEventEdit('{{ $eventId }}')">

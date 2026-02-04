@@ -24,7 +24,25 @@ class PersonEventController extends Controller
 
         return back()->with('success', 'Событие добавлено');
     }
+    public function update(Request $request, Person $person, $eventId)
+    {
+        $event = $person->events()->findOrFail($eventId);
 
+        if ($event->is_system) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'event_date'  => 'required|date',
+            'title'       => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'icon'        => 'nullable|string|max:10',
+        ]);
+
+        $event->update($data);
+
+        return back()->with('success', 'Событие обновлено');
+    }
     public function destroy(Person $person, $eventId)
     {
         $event = $person->events()->findOrFail($eventId);
