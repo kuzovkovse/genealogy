@@ -72,40 +72,47 @@
             </div>
         </div>
 
-        {{-- TIMELINE --}}
+        {{-- TIMELINE BODY --}}
         <div id="timeline-body">
             <div class="timeline">
 
                 @foreach($timeline as $event)
                     @php
-                        $isSystem = empty($event['id']);
-                        $eventId = $event['id'] ?? 'sys-' . md5($event['title'].$event['date']);
+                        $isSystem = $event['is_system'] ?? false;
+                        $model = $event['model'] ?? null;
+                        $eventId = $model?->id;
                     @endphp
 
-                    <div class="timeline-item">
+                    <div class="timeline-item {{ $isSystem ? 'timeline-system' : '' }}">
                         <div class="timeline-line"></div>
 
+                        {{-- ICON --}}
                         <div class="timeline-icon">
                             {{ $event['icon'] ?? '📌' }}
                         </div>
 
+                        {{-- CONTENT --}}
                         <div class="timeline-content">
                             <div class="card">
                                 <div class="card-body py-3">
 
                                     {{-- VIEW --}}
-                                    <div id="event-view-{{ $eventId }}">
+                                    <div id="event-view-{{ $eventId ?? 'sys-'.$loop->index }}">
                                         <div class="d-flex justify-content-between align-items-start">
-                                            <div class="fw-bold">
-                                                {{ $event['title'] }}
+
+                                            <div>
+                                                <div class="fw-bold">
+                                                    {{ $event['title'] }}
+                                                </div>
+
+                                                <div class="text-muted small">
+                                                    {{ \Carbon\Carbon::parse($event['event_date'])->format('d.m.Y') }}
+                                                </div>
                                             </div>
 
-                                            <div class="text-muted small d-flex align-items-center gap-2">
-                                                <span>
-                                                    {{ \Carbon\Carbon::parse($event['date'])->format('d.m.Y') }}
-                                                </span>
-
-                                                @if(!$isSystem)
+                                            {{-- ACTIONS --}}
+                                            @if(!$isSystem && $model)
+                                                <div class="d-flex gap-1">
                                                     <button class="btn btn-sm btn-outline-primary p-1"
                                                             title="Редактировать"
                                                             onclick="toggleEventEdit('{{ $eventId }}')">
@@ -113,7 +120,7 @@
                                                     </button>
 
                                                     <form method="POST"
-                                                          action="{{ route('events.destroy', [$person, $event['id']]) }}"
+                                                          action="{{ route('events.destroy', [$person, $eventId]) }}"
                                                           onsubmit="return confirm('Удалить событие?')">
                                                         @csrf
                                                         @method('DELETE')
@@ -122,22 +129,23 @@
                                                             🗑
                                                         </button>
                                                     </form>
-                                                @endif
-                                            </div>
+                                                </div>
+                                            @endif
                                         </div>
 
                                         @if(!empty($event['description']))
-                                            <div class="text-muted small mt-1">
+                                            <div class="text-muted small mt-2">
                                                 {{ $event['description'] }}
                                             </div>
                                         @endif
                                     </div>
 
                                     {{-- EDIT --}}
-                                    @if(!$isSystem)
-                                        <div id="event-edit-{{ $eventId }}" style="display:none;">
+                                    @if(!$isSystem && $model)
+                                        <div id="event-edit-{{ $eventId }}"
+                                             style="display:none;">
                                             <form method="POST"
-                                                  action="{{ route('events.update', [$person, $event['id']]) }}">
+                                                  action="{{ route('events.update', [$person, $eventId]) }}">
                                                 @csrf
                                                 @method('PATCH')
 
@@ -145,7 +153,7 @@
                                                     <div class="col-md-3">
                                                         <input type="date"
                                                                name="event_date"
-                                                               value="{{ $event['date'] }}"
+                                                               value="{{ $event['event_date'] }}"
                                                                class="form-control form-control-sm"
                                                                required>
                                                     </div>
@@ -171,7 +179,7 @@
                                                           rows="2">{{ $event['description'] }}</textarea>
 
                                                 <div class="d-flex gap-2">
-                                                    <button type="submit" class="btn btn-sm btn-primary">💾 Сохранить</button>
+                                                    <button class="btn btn-sm btn-primary">💾</button>
                                                     <button type="button"
                                                             class="btn btn-sm btn-outline-secondary"
                                                             onclick="toggleEventEdit('{{ $eventId }}')">
@@ -194,6 +202,7 @@
     </div>
 @endif
 
+{{-- SCRIPTS --}}
 <script>
     function toggleTimeline() {
         const el = document.getElementById('timeline-body');
@@ -216,9 +225,4 @@
         view.style.display = open ? 'none' : 'block';
         edit.style.display = open ? 'block' : 'none';
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const el = document.getElementById('timeline-body');
-        if (el) el.style.display = 'block';
-    });
 </script>
