@@ -113,7 +113,7 @@
                                                     </button>
 
                                                     <form method="POST"
-                                                          action="{{ route('events.destroy', $event['id']) }}"
+                                                          action="{{ route('events.destroy', [$person, $event['id']]) }}"
                                                           onsubmit="return confirm('Удалить событие?')">
                                                         @csrf
                                                         @method('DELETE')
@@ -138,7 +138,7 @@
                                         <div id="event-edit-{{ $eventId }}"
                                              style="display:none;">
                                             <form method="POST"
-                                                  action="{{ route('events.update', $event['id']) }}">
+                                                  action="{{ route('events.update', [$person, $event['id']]) }}"
                                                 @csrf
                                                 @method('PATCH')
 

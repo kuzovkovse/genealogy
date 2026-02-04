@@ -18,6 +18,7 @@ class PersonEventController extends Controller
 
         $person->events()->create([
             ...$data,
+            'type' => 'custom',
             'is_system' => false,
         ]);
 

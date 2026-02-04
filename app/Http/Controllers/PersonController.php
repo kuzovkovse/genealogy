@@ -227,6 +227,17 @@ class PersonController extends Controller
             $timeline->push(['date' => $person->death_date, 'title' => 'Смерть', 'icon' => '🕯']);
         }
 
+        // 👤 Пользовательские события
+        foreach ($person->events as $event) {
+            $timeline->push([
+                'id'          => $event->id,
+                'date'        => $event->event_date,
+                'title'       => $event->title,
+                'description' => $event->description,
+                'icon'        => $event->icon ?? '📌',
+            ]);
+        }
+
         $timeline = $timeline->sortBy('date')->values();
 
         $activeCandlesCount = $person->activeCandles()->count();
