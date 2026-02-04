@@ -31,5 +31,22 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 @stack('scripts')
+
+@if(app()->environment('dev'))
+    <div style="
+        position:fixed;
+        bottom:10px;
+        right:10px;
+        background:#dc3545;
+        color:white;
+        padding:6px 10px;
+        font-size:12px;
+        border-radius:6px;
+        z-index:9999;
+        font-weight:bold;
+    ">
+        DEV
+    </div>
+@endif
 </body>
 </html>

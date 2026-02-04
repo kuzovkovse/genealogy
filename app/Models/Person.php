@@ -10,6 +10,7 @@ use App\Models\MemorialCandle;
 use App\Models\PersonPhoto;
 use App\Services\FamilyContext;
 use App\Models\MemorialPhoto;
+use App\Models\PersonEvent;
 
 class Person extends Model
 {
@@ -132,6 +133,14 @@ class Person extends Model
         return $this->hasMany(Person::class, 'couple_id');
     }
 
+    /* =========================================================
+        * ⏳ СОБЫТИЯ ЖИЗНИ
+        * ========================================================= */
+    public function events(): HasMany
+    {
+        return $this->hasMany(PersonEvent::class)
+            ->orderBy('event_date');
+    }
     /* =========================================================
  * 📄 ДОКУМЕНТЫ
  * ========================================================= */

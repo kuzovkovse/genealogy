@@ -165,15 +165,11 @@ Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
         [PersonEventController::class, 'store']
     )->name('events.store');
 
-    Route::patch(
-        '/events/{event}',
-        [EventController::class, 'update']
-    )->name('events.update');
+    Route::patch('/people/{person}/events/{event}', [PersonEventController::class, 'update'])
+        ->name('events.update');
 
-    Route::delete(
-        '/events/{event}',
-        [EventController::class, 'destroy']
-    )->name('events.destroy');
+    Route::delete('/people/{person}/events/{event}', [PersonEventController::class, 'destroy'])
+        ->name('events.destroy');
 
     /*
     |--------------------------------------------------------------------------

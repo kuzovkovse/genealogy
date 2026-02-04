@@ -89,13 +89,18 @@
             </div>
 
             {{-- Фамилия при рождении --}}
-            <div class="mb-3">
+            <div class="mb-3"
+                 id="birth-last-name-block"
+                 style="{{ $person->gender === 'female' || $person->birth_last_name ? '' : 'display:none;' }}">
+
                 <label class="form-label">
                     Фамилия при рождении
                     <small class="text-muted">(девичья)</small>
                 </label>
+
                 <input
                     name="birth_last_name"
+                    id="birth_last_name"
                     class="form-control"
                     value="{{ old('birth_last_name', $person->birth_last_name) }}"
                     placeholder="Если отличается от текущей"
@@ -150,4 +155,29 @@
 
         </form>
     </div>
+
+    <script>
+        function toggleBirthLastNameEdit() {
+            const genderSelect = document.querySelector('select[name="gender"]');
+            const block = document.getElementById('birth-last-name-block');
+            const input = document.getElementById('birth_last_name');
+
+            if (!genderSelect || !block) return;
+
+            if (genderSelect.value === 'female') {
+                block.style.display = 'block';
+            } else {
+                block.style.display = 'none';
+                if (input) input.value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const genderSelect = document.querySelector('select[name="gender"]');
+            if (!genderSelect) return;
+
+            genderSelect.addEventListener('change', toggleBirthLastNameEdit);
+        });
+    </script>
+
 @endsection

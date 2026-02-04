@@ -24,10 +24,25 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // 1️⃣ Аутентификация
         $request->authenticate();
 
+        // 2️⃣ Регенерация сессии (важно для безопасности)
         $request->session()->regenerate();
 
+        // 3️⃣ 🔥 ВСЕГДА выставляем активную семью
+        if (auth()->check()) {
+            $family = auth()->user()
+                ->families()
+                ->orderBy('family_users.created_at')
+                ->first();
+
+            if ($family) {
+                session(['active_family_id' => $family->id]);
+            }
+        }
+
+        // 4️⃣ Редирект
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -39,7 +54,6 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');

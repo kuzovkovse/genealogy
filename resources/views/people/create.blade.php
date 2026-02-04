@@ -22,13 +22,14 @@
                 <input name="last_name" class="form-control">
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3" id="birth-last-name-block" style="display:none;">
                 <label class="form-label">
                     Фамилия при рождении
                     <small class="text-muted">(девичья)</small>
                 </label>
                 <input
                     name="birth_last_name"
+                    id="birth_last_name"
                     class="form-control"
                     placeholder="Если отличается от текущей"
                 >
@@ -67,5 +68,32 @@
         <div class="card-footer text-end">
             <button class="btn btn-primary">Сохранить</button>
         </div>
+
+        <script>
+            function toggleBirthLastName() {
+                const genderSelect = document.querySelector('select[name="gender"]');
+                const block = document.getElementById('birth-last-name-block');
+                const input = document.getElementById('birth_last_name');
+
+                if (!genderSelect || !block) return;
+
+                if (genderSelect.value === 'female') {
+                    block.style.display = 'block';
+                } else {
+                    block.style.display = 'none';
+                    if (input) input.value = '';
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const genderSelect = document.querySelector('select[name="gender"]');
+                if (!genderSelect) return;
+
+                toggleBirthLastName();
+                genderSelect.addEventListener('change', toggleBirthLastName);
+            });
+        </script>
+
+
     </form>
 @endsection

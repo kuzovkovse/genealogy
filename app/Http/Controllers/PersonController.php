@@ -43,12 +43,26 @@ class PersonController extends Controller
         $family = FamilyContext::require();
 
         $data = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'nullable|string|max:255',
-            'gender'     => 'nullable|in:male,female',
-            'birth_date' => 'nullable|string|max:20',
-            'death_date' => 'nullable|string|max:20',
+            'first_name'       => 'required|string|max:255',
+            'last_name'        => 'nullable|string|max:255',
+            'birth_last_name'  => 'nullable|string|max:255',
+            'patronymic'       => 'nullable|string|max:255',
+            'gender'           => 'nullable|in:male,female',
+            'birth_date'       => 'nullable|string|max:20',
+            'death_date'       => 'nullable|string|max:20',
+            'birth_place'      => 'nullable|string|max:255',
+            'biography'        => 'nullable|string',
         ]);
+
+        // 💡 Автологика: девичья фамилия
+        if (
+            ($data['gender'] ?? null) === 'female'
+            && empty($data['birth_last_name'])
+            && !empty($data['last_name'])
+        ) {
+            $data['birth_last_name'] = $data['last_name'];
+        }
+
 
         if (($data['birth_date'] ?? '') === '') {
             $data['birth_date'] = null;
@@ -213,6 +227,17 @@ class PersonController extends Controller
             $timeline->push(['date' => $person->death_date, 'title' => 'Смерть', 'icon' => '🕯']);
         }
 
+        // 👤 Пользовательские события
+        foreach ($person->events as $event) {
+            $timeline->push([
+                'id'          => $event->id,
+                'date'        => $event->event_date,
+                'title'       => $event->title,
+                'description' => $event->description,
+                'icon'        => $event->icon ?? '📌',
+            ]);
+        }
+
         $timeline = $timeline->sortBy('date')->values();
 
         $activeCandlesCount = $person->activeCandles()->count();
@@ -258,6 +283,15 @@ class PersonController extends Controller
             'birth_date' => 'nullable|string|max:20',
             'death_date' => 'nullable|string|max:20',
         ]);
+
+// 💡 Автологика: девичья фамилия
+        if (
+            ($data['gender'] ?? null) === 'female'
+            && empty($data['birth_last_name'])
+            && !empty($data['last_name'])
+        ) {
+            $data['birth_last_name'] = $data['last_name'];
+        }
 
         if (($data['birth_date'] ?? '') === '') {
             $data['birth_date'] = null;
