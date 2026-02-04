@@ -43,11 +43,15 @@ class PersonController extends Controller
         $family = FamilyContext::require();
 
         $data = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'nullable|string|max:255',
-            'gender'     => 'nullable|in:male,female',
-            'birth_date' => 'nullable|string|max:20',
-            'death_date' => 'nullable|string|max:20',
+            'first_name'       => 'required|string|max:255',
+            'last_name'        => 'nullable|string|max:255',
+            'birth_last_name'  => 'nullable|string|max:255',
+            'patronymic'       => 'nullable|string|max:255',
+            'gender'           => 'nullable|in:male,female',
+            'birth_date'       => 'nullable|string|max:20',
+            'death_date'       => 'nullable|string|max:20',
+            'birth_place'      => 'nullable|string|max:255',
+            'biography'        => 'nullable|string',
         ]);
 
         if (($data['birth_date'] ?? '') === '') {
