@@ -202,43 +202,62 @@ class PersonController extends Controller
         /* ---------- ХРОНОЛОГИЯ ---------- */
         $timeline = collect();
 
+        /* 🔹 системные события */
         if ($person->birth_date) {
-            $timeline->push(['date' => $person->birth_date, 'title' => 'Рождение', 'icon' => '🎂']);
+            $timeline->push([
+                'event_date' => $person->birth_date,
+                'title' => 'Рождение',
+                'description' => null,
+                'icon' => '🎂',
+                'is_system' => true,
+                'model' => null,
+            ]);
         }
 
         foreach ($couples as $c) {
             if ($c->married_at) {
-                $timeline->push(['date' => $c->married_at, 'title' => 'Брак', 'icon' => '💍']);
-            }
-            if ($c->divorced_at) {
-                $timeline->push(['date' => $c->divorced_at, 'title' => 'Развод', 'icon' => '💔']);
+                $timeline->push([
+                    'event_date' => $c->married_at,
+                    'title' => 'Брак',
+                    'description' => null,
+                    'icon' => '💍',
+                    'is_system' => true,
+                    'model' => null,
+                ]);
             }
         }
 
-        foreach ($childrenByCouple as $children) {
-            foreach ($children as $child) {
+        foreach ($couples as $couple) {
+            foreach ($couple->children as $child) {
                 if ($child->birth_date) {
-                    $timeline->push(['date' => $child->birth_date, 'title' => 'Рождение ребёнка', 'icon' => '👶']);
+                    $timeline->push([
+                        'event_date' => $child->birth_date,
+                        'title' => 'Рождение ' . ($child->gender === 'female' ? 'дочери' : 'сына'),
+                        'description' => $child->full_name,
+                        'icon' => '👶',
+                        'is_system' => true,
+                        'model' => null,
+                    ]);
                 }
             }
         }
 
-        if ($person->death_date) {
-            $timeline->push(['date' => $person->death_date, 'title' => 'Смерть', 'icon' => '🕯']);
-        }
-
-        // 👤 Пользовательские события
+        /* 🔹 пользовательские события */
         foreach ($person->events as $event) {
             $timeline->push([
-                'id'          => $event->id,
-                'date'        => $event->event_date,
-                'title'       => $event->title,
+                'event_date' => $event->event_date,
+                'title' => $event->title,
                 'description' => $event->description,
-                'icon'        => $event->icon ?? '📌',
+                'icon' => $event->icon ?? '📌',
+                'is_system' => false,
+                'model' => $event,
             ]);
         }
 
-        $timeline = $timeline->sortBy('date')->values();
+        /* 🔹 сортировка */
+        $timeline = $timeline
+            ->sortBy('event_date')
+            ->values();
 
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
