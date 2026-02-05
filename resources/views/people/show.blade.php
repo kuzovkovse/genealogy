@@ -413,7 +413,17 @@
                 <a href="{{ route('people.edit', $person) }}" class="btn btn-outline-primary">
                     ✏️ Редактировать
                 </a>
-
+                <div class="form-check form-switch ms-2">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="extendedKinshipToggle"
+                        {{ $kinship->extended ? 'checked' : '' }}
+                    >
+                    <label class="form-check-label small text-muted" for="extendedKinshipToggle">
+                        Расширенное родство
+                    </label>
+                </div>
                 @if($person->public_uuid)
                     <a href="{{ route('people.public', ['uuid' => $person->public_uuid]) }}"
                        target="_blank"
@@ -487,11 +497,17 @@
         </div>
 
         {{-- ================== ДЕДЫ И БАБУШКИ ================== --}}
-    @include('people.partials.grandparents')
-    {{-- ================== БРАТЬЯ И СЁСТРЫ ================== --}}
-    @include('people.partials.siblings')
-    {{-- ================== СВОДНЫЕ БРАТЬЯ И СЁСТРЫ ================== --}}
-    @include('people.partials.half-siblings')
+        @include('people.partials.grandparents')
+
+        {{-- ================== ПРАДЕДЫ И ПРАБАБУШКИ ================== --}}
+        @if($kinship->extended)
+            @include('people.partials.great-grandparents', ['kinship' => $kinship])
+        @endif
+
+        {{-- ================== БРАТЬЯ И СЁСТРЫ ================== --}}
+        @include('people.partials.siblings', [
+            'siblings' => $kinship->siblings
+        ])
     {{-- ================= БРАКИ ================= --}}
     @include('people.partials.marriages')
     {{-- ================== МЕСТО ПАМЯТИ ================== --}}
@@ -606,4 +622,40 @@
                 : 'none';
         }
     </script>
+    <script>
+        (function () {
+            const toggle = document.getElementById('extendedKinshipToggle');
+            if (!toggle) return;
+
+            const STORAGE_KEY = 'kinship_extended';
+
+            // 1️⃣ при загрузке страницы — синхронизируем с localStorage
+            const saved = localStorage.getItem(STORAGE_KEY);
+
+            if (saved !== null) {
+                const shouldBeChecked = saved === '1';
+                if (toggle.checked !== shouldBeChecked) {
+                    toggle.checked = shouldBeChecked;
+                }
+            }
+
+            // 2️⃣ при клике — сохраняем и перезагружаем
+            toggle.addEventListener('change', function () {
+                const isChecked = toggle.checked;
+
+                localStorage.setItem(STORAGE_KEY, isChecked ? '1' : '0');
+
+                const url = new URL(window.location.href);
+
+                if (isChecked) {
+                    url.searchParams.set('extended', '1');
+                } else {
+                    url.searchParams.delete('extended');
+                }
+
+                window.location.href = url.toString();
+            });
+        })();
+    </script>
+
 @endsection
