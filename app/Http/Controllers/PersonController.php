@@ -7,6 +7,7 @@ use App\Models\Couple;
 use App\Models\MemorialPhoto;
 use App\Models\MemorialCandle;
 use App\Services\FamilyContext;
+use App\Services\KinshipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\PersonPhoto;
@@ -262,6 +263,22 @@ class PersonController extends Controller
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
 
+        // ================= РОДСТВО (НОВОЕ) =================
+        $extended = request()->boolean('extended');
+
+        $kinshipService = app(KinshipService::class);
+
+        $kinship = (object) [
+            'extended' => $extended,
+            'siblings' => $kinshipService->getSiblings($person),
+            'extendedSiblings' => $extended
+                ? $kinshipService->getExtendedSiblings($person)
+                : collect(),
+            'ancestors' => $extended
+                ? $kinshipService->getAncestors($person, 3)
+                : collect(),
+        ];
+
         return view('people.show', compact(
             'person',
             'couples',
@@ -277,7 +294,8 @@ class PersonController extends Controller
             'activeCandlesCount',
             'lastCandles',
             'marriageCandidates',
-            'existingChildrenCandidates'
+            'existingChildrenCandidates',
+            'kinship'
         ));
     }
 
@@ -301,6 +319,7 @@ class PersonController extends Controller
             'gender' => 'nullable|in:male,female',
             'birth_date' => 'nullable|string|max:20',
             'death_date' => 'nullable|string|max:20',
+            'is_war_participant' => 'nullable|boolean'
         ]);
 
 // 💡 Автологика: девичья фамилия
@@ -319,7 +338,7 @@ class PersonController extends Controller
         if (($data['death_date'] ?? '') === '') {
             $data['death_date'] = null;
         }
-
+        $data['is_war_participant'] = $request->boolean('is_war_participant');
         $person->update($data);
 
         return redirect()->route('people.show', $person);
@@ -485,7 +504,6 @@ class PersonController extends Controller
 
         return back()->with('success', 'Фото удалено');
     }
-
 
     /* ===============================
      * Защита

@@ -31,7 +31,8 @@ class Person extends Model
         'couple_id',
         'public_uuid',
         'family_id',
-
+        // 🪖 участник войн
+        'is_war_participant',
         // 🕯 место памяти
         'burial_cemetery',
         'burial_city',
@@ -157,6 +158,11 @@ class Person extends Model
     {
         return $this->hasMany(PersonMilitaryService::class);
     }
+
+    protected $casts = [
+        'is_war_participant' => 'boolean',
+    ];
+
 
     /* =========================================================
      * 🏠 FAMILY SCOPE
