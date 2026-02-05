@@ -146,6 +146,35 @@
                 </small>
             </div>
 
+            {{-- ================== ВОЕННЫЙ СТАТУС ================== --}}
+            <div class="card mb-4 mt-4">
+                <div class="card-body">
+
+                    <div class="form-check form-switch">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            id="is_war_participant"
+                            name="is_war_participant"
+                            value="1"
+                            @checked(old('is_war_participant', $person->is_war_participant))
+                        >
+
+                        <label class="form-check-label fw-semibold"
+                               for="is_war_participant">
+                            🪖 Участник войн
+                        </label>
+                    </div>
+
+                    <div class="text-muted mt-2" style="font-size:13px;">
+                        Включите, если человек участвовал в военных действиях
+                        (Великая Отечественная, Первая мировая и др.)
+                    </div>
+
+                </div>
+            </div>
+
             <div class="d-flex gap-2 mt-4">
                 <button class="btn btn-primary">💾 Сохранить</button>
                 <a href="{{ route('people.show', $person) }}" class="btn btn-outline-secondary">

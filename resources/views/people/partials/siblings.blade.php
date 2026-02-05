@@ -44,7 +44,8 @@
                          src="{{ $person->photo
                             ? asset('storage/'.$person->photo)
                             : route('avatar', [
-                                'name' => mb_substr($person->first_name,0,1).mb_substr($person->last_name ?? '',0,1),
+                                'name' => mb_substr($person->first_name,0,1)
+                                    .mb_substr($person->last_name ?? '',0,1),
                                 'gender' => $person->gender
                             ])
                          }}">
@@ -57,7 +58,6 @@
                                 {{ $role }}
                             </span>
 
-                            {{-- подпись родства --}}
                             @if($dto->label())
                                 <span class="text-muted small">
                                     ({{ $dto->label() }})

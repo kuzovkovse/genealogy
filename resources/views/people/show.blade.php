@@ -2,8 +2,7 @@
 @section('title', $person->last_name . ' ' . $person->first_name)
 
 @section('content')
-
-    <style>
+      <style>
         /* ===== HERO ===== */
         .person-hero {
             display: flex;
@@ -27,6 +26,27 @@
             object-fit: cover;
             border: 4px solid #e5e7eb;
         }
+
+        /* 🎖 Георгиевская лента */
+        .photo-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .photo-wrapper .war-ribbon {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+
+            width: 42px;
+            height: 42px;
+
+            z-index: 3;
+            pointer-events: none;
+
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+        }
+
 
         .person-main {
             flex: 1;
@@ -348,6 +368,62 @@
         }
 
 
+        /* =========================
+           🧬 ВИЗУАЛЬНЫЕ ЛИНИИ РОДСТВА
+           ========================= */
+
+        .kinship-line {
+            position: relative;
+            padding-left: 28px;
+        }
+
+        /* вертикальная линия */
+        .kinship-line::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: linear-gradient(
+                to bottom,
+                rgba(139,94,60,0.15),
+                rgba(139,94,60,0.35),
+                rgba(139,94,60,0.15)
+            );
+            border-radius: 2px;
+        }
+
+        /* карточки смещаем вправо */
+        .kinship-line .parent-card {
+            position: relative;
+        }
+
+        /* короткая горизонтальная «ветка» */
+        .kinship-line .parent-card::before {
+            content: '';
+            position: absolute;
+            left: -18px;
+            top: 50%;
+            width: 16px;
+            height: 1px;
+            background: rgba(139,94,60,0.35);
+        }
+
+        /* мемориальный режим — спокойнее */
+        .memorial .kinship-line::before {
+            background: linear-gradient(
+                to bottom,
+                rgba(120,120,120,0.2),
+                rgba(120,120,120,0.4),
+                rgba(120,120,120,0.2)
+            );
+        }
+
+        .memorial .kinship-line .parent-card::before {
+            background: rgba(120,120,120,0.4);
+        }
+
 
     </style>
 
@@ -369,10 +445,27 @@
         <div class="person-hero {{ $person->death_date ? 'dead' : '' }}">
 
             {{-- ЛЕВАЯ ЧАСТЬ --}}
-            <img
-                src="{{ $person->photo ? asset('storage/'.$person->photo) : route('avatar', ['name' => mb_substr($person->first_name,0,1).mb_substr($person->last_name,0,1), 'gender' => $person->gender]) }}"
-                class="person-photo"
-            >
+            <div class="photo-wrapper">
+                <img
+                    src="{{ $person->photo
+            ? asset('storage/'.$person->photo)
+            : route('avatar', [
+                'name' => mb_substr($person->first_name,0,1).mb_substr($person->last_name,0,1),
+                'gender' => $person->gender
+            ])
+        }}"
+                    class="person-photo"
+                >
+
+                @if($person->is_war_participant)
+                    <img
+                        src="{{ asset('icons/georgievskaya-ribbon.svg') }}"
+                        class="war-ribbon"
+                        alt="Участник войн"
+                        title="Участник войн"
+                    >
+                @endif
+            </div>
 
             <div class="person-main">
                 <div class="person-name">
@@ -438,9 +531,9 @@
         {{-- ================= РОДИТЕЛИ ================= --}}
         <h3 class="mb-3">Родители</h3>
 
-        <div class="parents-grid">
+        <div class="parents-grid kinship-line">
 
-            @foreach([ 'Отец' => $father ?? null, 'Мать' => $mother ?? null ] as $label => $parent)
+        @foreach([ 'Отец' => $father ?? null, 'Мать' => $mother ?? null ] as $label => $parent)
                 @if($parent)
                     @php
                         $pb = $parent->birth_date ? Carbon::parse($parent->birth_date) : null;
@@ -562,6 +655,10 @@
         </div>
 
     </div>
+        {{-- ================== УЧАСТИЕ В ВОЙНАХ ================== --}}
+        @if($person->is_war_participant)
+            @include('people.partials.military-service')
+        @endif
     {{-- ================== ФОТОГАЛЛЕРЕЯ ================== --}}
     @include('people.partials.gallery')
     {{-- ================== ДОБАВЛЕНИЕ ФОТО ================== --}}
