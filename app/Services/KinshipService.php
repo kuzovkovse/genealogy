@@ -2,11 +2,16 @@
 
 namespace App\Services;
 
+use App\DTO\KinshipDTO;
 use App\Models\Person;
 use Illuminate\Support\Collection;
 
 class KinshipService
 {
+    /* =========================================================
+     * 🧓 ПРЕДКИ
+     * ========================================================= */
+
     /**
      * Получить всех предков человека
      *
@@ -85,6 +90,102 @@ class KinshipService
             );
         }
     }
+
+    /* =========================================================
+     * 👨‍👩‍👧 БРАТЬЯ И СЁСТРЫ (родные / сводные)
+     * ========================================================= */
+
+    public function getSiblings(Person $person): Collection
+    {
+        $siblings = collect();
+
+        $parentCouple = $person->parentCouple;
+
+        if (!$parentCouple) {
+            return $siblings;
+        }
+
+        // 1️⃣ Родные (одна родительская пара)
+        $parentCouple->children
+            ->where('id', '!=', $person->id)
+            ->each(function (Person $child) use (&$siblings) {
+                $siblings->push(
+                    new KinshipDTO($child, 'sibling')
+                );
+            });
+
+        public function getSiblings(Person $person): Collection
+    {
+        $siblings = collect();
+
+        $parentCouple = $person->parentCouple;
+
+        if (!$parentCouple) {
+            return $siblings;
+        }
+
+        // 1️⃣ Родные (та же родительская пара)
+        $parentCouple->children
+            ->where('id', '!=', $person->id)
+            ->each(function (Person $child) use (&$siblings) {
+                $siblings->push(
+                    new KinshipDTO($child, 'sibling')
+                );
+            });
+
+        // 2️⃣ Сводные по отцу (другие браки отца)
+        if ($person->father()) {
+            foreach ($person->father()->couples as $couple) {
+                if ($couple->id === $parentCouple->id) {
+                    continue;
+                }
+
+                foreach ($couple->children as $child) {
+                    if ($child->id === $person->id) {
+                        continue;
+                    }
+
+                    if ($siblings->contains(fn (KinshipDTO $dto) => $dto->person->id === $child->id)) {
+                        continue;
+                    }
+
+                    $siblings->push(
+                        new KinshipDTO($child, 'half_sibling')
+                    );
+                }
+            }
+        }
+
+        // 3️⃣ Сводные по матери (другие браки матери)
+        if ($person->mother()) {
+            foreach ($person->mother()->couples as $couple) {
+                if ($couple->id === $parentCouple->id) {
+                    continue;
+                }
+
+                foreach ($couple->children as $child) {
+                    if ($child->id === $person->id) {
+                        continue;
+                    }
+
+                    if ($siblings->contains(fn (KinshipDTO $dto) => $dto->person->id === $child->id)) {
+                        continue;
+                    }
+
+                    $siblings->push(
+                        new KinshipDTO($child, 'half_sibling')
+                    );
+                }
+            }
+        }
+
+        return $siblings->values();
+    }
+
+    /* =========================================================
+     * 👨‍👩‍👧‍👦 2 И 3-ЮРОДНЫЕ
+     * ========================================================= */
+
     /**
      * Получить 2- и 3-юродных братьев и сестёр
      */
@@ -95,8 +196,8 @@ class KinshipService
         // Предки текущего человека
         $myAncestors = $this->getAncestors($person, $maxDegree + 1);
 
-        // Уже известные (родные и сводные)
-        $directSiblings = $this->getSiblings($person)
+        // Родные + сводные (чтобы исключить)
+        $directSiblingIds = $this->getSiblings($person)
             ->pluck('person.id')
             ->toArray();
 
@@ -116,12 +217,11 @@ class KinshipService
                 }
 
                 // исключаем родных и сводных
-                if (in_array($relative->id, $directSiblings, true)) {
+                if (in_array($relative->id, $directSiblingIds, true)) {
                     continue;
                 }
 
                 $relativeDepth = $descendantData['depth'];
-
                 $degree = $myDepth + $relativeDepth - 2;
 
                 if ($degree < 2 || $degree > $maxDegree) {
@@ -129,33 +229,27 @@ class KinshipService
                 }
 
                 // защита от дублей
-                if ($result->contains(fn ($r) => $r['person']->id === $relative->id)) {
+                if ($result->contains(fn (KinshipDTO $dto) => $dto->person->id === $relative->id)) {
                     continue;
                 }
 
-                $label = match ($degree) {
-                    2 => '2 юрод.',
-                    3 => '3 юродн.',
-                    default => null,
-                };
-
-                if ($label) {
-                    $result->push([
-                        'person' => $relative,
-                        'type'   => 'cousin',
-                        'degree' => $degree,
-                        'label'  => $label,
-                    ]);
-                }
+                $result->push(
+                    new KinshipDTO(
+                        person: $relative,
+                        kind: 'cousin',
+                        degree: $degree
+                    )
+                );
             }
         }
 
         return $result->values();
     }
 
-    /**
-     * Получить всех потомков человека
-     */
+    /* =========================================================
+     * 👶 ПОТОМКИ (служебное)
+     * ========================================================= */
+
     protected function getDescendants(Person $person, int $depth = 1, Collection $result = null): Collection
     {
         $result ??= collect();
@@ -177,5 +271,4 @@ class KinshipService
 
         return $result;
     }
-
 }
