@@ -12,7 +12,8 @@
                     По отцу
                 </div>
 
-                <div class="parents-grid">
+                {{-- 🔗 линия родства --}}
+                <div class="parents-grid kinship-line">
                     @foreach($grandparentsFather as $gp)
                         @php
                             $pb = $gp->birth_date ? \Carbon\Carbon::parse($gp->birth_date) : null;
@@ -26,7 +27,8 @@
                                  src="{{ $gp->photo
                                     ? asset('storage/'.$gp->photo)
                                     : route('avatar', [
-                                        'name' => mb_substr($gp->first_name,0,1).mb_substr($gp->last_name ?? '',0,1),
+                                        'name' => mb_substr($gp->first_name,0,1)
+                                            .mb_substr($gp->last_name ?? '',0,1),
                                         'gender' => $gp->gender
                                     ])
                                  }}">
@@ -37,6 +39,7 @@
                                           style="background:#fef3c7;color:#92400e;">
                                         {{ $gp->gender === 'male' ? 'Дед' : 'Бабушка' }}
                                     </span>
+
                                     <div class="parent-name">
                                         {{ $gp->last_name }} {{ $gp->first_name }}
 
@@ -46,8 +49,8 @@
                                             && $gp->birth_last_name !== $gp->last_name
                                         )
                                             <span class="text-muted" style="font-size:13px;">
-            (урожд. {{ $gp->birth_last_name }})
-        </span>
+                                                (урожд. {{ $gp->birth_last_name }})
+                                            </span>
                                         @endif
                                     </div>
                                 </div>
@@ -72,7 +75,8 @@
                     По матери
                 </div>
 
-                <div class="parents-grid">
+                {{-- 🔗 линия родства --}}
+                <div class="parents-grid kinship-line">
                     @foreach($grandparentsMother as $gp)
                         @php
                             $pb = $gp->birth_date ? \Carbon\Carbon::parse($gp->birth_date) : null;
@@ -86,7 +90,8 @@
                                  src="{{ $gp->photo
                                     ? asset('storage/'.$gp->photo)
                                     : route('avatar', [
-                                        'name' => mb_substr($gp->first_name,0,1).mb_substr($gp->last_name ?? '',0,1),
+                                        'name' => mb_substr($gp->first_name,0,1)
+                                            .mb_substr($gp->last_name ?? '',0,1),
                                         'gender' => $gp->gender
                                     ])
                                  }}">
@@ -97,6 +102,7 @@
                                           style="background:#fef3c7;color:#92400e;">
                                         {{ $gp->gender === 'male' ? 'Дед' : 'Бабушка' }}
                                     </span>
+
                                     <div class="parent-name">
                                         {{ $gp->last_name }} {{ $gp->first_name }}
 
@@ -106,11 +112,10 @@
                                             && $gp->birth_last_name !== $gp->last_name
                                         )
                                             <span class="text-muted" style="font-size:13px;">
-            (урожд. {{ $gp->birth_last_name }})
-        </span>
+                                                (урожд. {{ $gp->birth_last_name }})
+                                            </span>
                                         @endif
                                     </div>
-
                                 </div>
 
                                 <div class="parent-life">
