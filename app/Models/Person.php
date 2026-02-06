@@ -136,6 +136,19 @@ class Person extends Model
     }
 
     /* =========================================================
+        * ФИО
+        * ========================================================= */
+    public function fullName(): string
+    {
+        return trim(collect([
+            $this->last_name,
+            $this->first_name,
+            $this->patronymic,
+        ])->filter()->implode(' '));
+    }
+
+
+    /* =========================================================
         * ⏳ СОБЫТИЯ ЖИЗНИ
         * ========================================================= */
     public function events(): HasMany

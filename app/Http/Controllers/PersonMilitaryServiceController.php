@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Person;
 use App\Models\PersonMilitaryService;
+use App\Models\PersonMilitaryDocument;
 use Illuminate\Http\Request;
 
 class PersonMilitaryServiceController extends Controller

@@ -243,6 +243,51 @@ class PersonController extends Controller
             }
         }
 
+
+        /* ---------- ВОЕННАЯ СЛУЖБА ---------- */
+        foreach ($person->militaryServices as $service) {
+
+            // 🪖 Призыв
+            if ($service->draft_year) {
+                $timeline->push([
+                    'event_date' => Carbon::create($service->draft_year, 1, 1)->toDateString(),
+                    'title'      => 'Призван на военную службу',
+                    'description'=> trim(
+                        $service->warLabel()
+                        . ($service->unit ? ', ' . $service->unit : '')
+                    ),
+                    'icon'       => '🪖',
+                    'is_system'  => true,
+                    'model'      => null,
+                ]);
+            }
+
+            // 🎖 Окончание службы
+            if ($service->service_end) {
+                $timeline->push([
+                    'event_date' => Carbon::create($service->service_end, 12, 31)->toDateString(),
+                    'title'      => 'Окончание военной службы',
+                    'description'=> $service->warLabel(),
+                    'icon'       => '🎖',
+                    'is_system'  => true,
+                    'model'      => null,
+                ]);
+            }
+
+            // ✝ Гибель
+            if ($service->is_killed && $service->killed_date) {
+                $timeline->push([
+                    'event_date' => $service->killed_date,
+                    'title'      => 'Погиб в ходе службы',
+                    'description'=> $service->warLabel(),
+                    'icon'       => '✝',
+                    'is_system'  => true,
+                    'model'      => null,
+                ]);
+            }
+        }
+
+
         /* 🔹 пользовательские события */
         foreach ($person->events as $event) {
             $timeline->push([
@@ -313,13 +358,14 @@ class PersonController extends Controller
         $this->authorizePerson($person);
 
         $data = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'birth_last_name' => 'nullable|string|max:255',
-            'gender' => 'nullable|in:male,female',
-            'birth_date' => 'nullable|string|max:20',
-            'death_date' => 'nullable|string|max:20',
-            'is_war_participant' => 'nullable|boolean'
+            'first_name'       => 'required|string|max:255',
+            'last_name'        => 'nullable|string|max:255',
+            'patronymic'       => 'nullable|string|max:255',
+            'birth_last_name'  => 'nullable|string|max:255',
+            'gender'           => 'nullable|in:male,female',
+            'birth_date'       => 'nullable|string|max:20',
+            'death_date'       => 'nullable|string|max:20',
+            'is_war_participant' => 'nullable|boolean',
         ]);
 
 // 💡 Автологика: девичья фамилия

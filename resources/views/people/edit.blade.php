@@ -80,6 +80,15 @@
                        required>
             </div>
 
+            {{-- Отчество --}}
+            <div class="mb-3">
+                <label class="form-label">Отчество</label>
+                <input name="patronymic"
+                       class="form-control"
+                       value="{{ old('patronymic', $person->patronymic) }}"
+                       placeholder="Необязательно">
+            </div>
+
             {{-- Фамилия --}}
             <div class="mb-3">
                 <label class="form-label">Фамилия</label>
