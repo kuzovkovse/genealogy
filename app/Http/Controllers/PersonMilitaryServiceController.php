@@ -16,16 +16,7 @@ class PersonMilitaryServiceController extends Controller
         $this->authorizePerson($person);
 
         $data = $this->validateData($request);
-
-        // checkbox может не прийти
         $data['is_killed'] = $request->boolean('is_killed');
-
-        // 🔒 защита от пустого war_type
-        if (empty($data['war_type'])) {
-            return back()
-                ->withErrors(['war_type' => 'Укажите войну или конфликт'])
-                ->withInput();
-        }
 
         $person->militaryServices()->create($data);
 
