@@ -16,6 +16,7 @@ use App\Http\Controllers\RelationshipController;
 use App\Http\Controllers\TreeController;
 use App\Http\Controllers\PersonDocumentController;
 use App\Http\Controllers\PersonMilitaryServiceController;
+use App\Http\Controllers\PersonMilitaryDocumentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -159,6 +160,22 @@ Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
     Route::post('/people/{person}/memorial/photos', [PersonController::class, 'storeMemorialPhoto'])
         ->name('people.memorial.photos.store');
 });
+
+/*
+   |--------------------------------------------------------------------------
+   | ДОКУМЕНТЫ ВОЙНЫ
+   |--------------------------------------------------------------------------
+   */
+Route::post(
+    '/military/{service}/documents',
+    [PersonMilitaryDocumentController::class, 'store']
+)->name('military.documents.store');
+
+Route::delete(
+    '/military/documents/{document}',
+    [PersonMilitaryDocumentController::class, 'destroy']
+)->name('military.documents.destroy');
+
 
 /*
 |--------------------------------------------------------------------------
