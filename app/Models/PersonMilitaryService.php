@@ -22,28 +22,25 @@ class PersonMilitaryService extends Model
         'service_end',
         'unit',
 
-        // награды и документы
+        // награды
         'awards',
-        'documents',
 
         // гибель
         'is_killed',
         'killed_date',
         'burial_place',
 
-        // доп. информация
+        // заметки
         'notes',
     ];
 
     protected $casts = [
         'draft_year'   => 'integer',
-        'service_start'=> 'date',
-        'service_end'  => 'date',
+        'service_start'=> 'integer',
+        'service_end'  => 'integer',
 
         'is_killed'    => 'boolean',
         'killed_date'  => 'date',
-
-        'documents'    => 'array',
     ];
 
     /* =========================================================
@@ -56,11 +53,26 @@ class PersonMilitaryService extends Model
     }
 
     /* =========================================================
-     * 🧠 ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+     * 🧠 ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (КЛЮЧЕВО!)
      * ========================================================= */
 
     /**
-     * Человек погиб во время службы
+     * Читаемое название войны
+     */
+    public function warLabel(): string
+    {
+        return match ($this->war_type) {
+            'ww2'          => 'Великая Отечественная война',
+            'ww1'          => 'Первая мировая война',
+            'afghanistan' => 'Афганская война',
+            'chechnya'    => 'Чеченская война',
+            'other'       => 'Военная служба',
+            default       => 'Военная служба',
+        };
+    }
+
+    /**
+     * Погиб ли человек
      */
     public function isKilled(): bool
     {
@@ -73,51 +85,5 @@ class PersonMilitaryService extends Model
     public function hasAwards(): bool
     {
         return !empty(trim((string) $this->awards));
-    }
-
-    /**
-     * Есть ли документы
-     */
-    public function hasDocuments(): bool
-    {
-        return is_array($this->documents) && count($this->documents) > 0;
-    }
-
-    /**
-     * Человек служил в конкретной войне
-     */
-    public function isWar(string $warType): bool
-    {
-        return $this->war_type === $warType;
-    }
-
-    /**
-     * Человек служил в ВОВ
-     */
-    public function isWW2(): bool
-    {
-        return $this->war_type === 'ww2';
-    }
-
-    /**
-     * Человек служил в Первой мировой
-     */
-    public function isWW1(): bool
-    {
-        return $this->war_type === 'ww1';
-    }
-
-    /**
-     * Читаемое название войны
-     */
-    public function warLabel(): string
-    {
-        return match ($this->war_type) {
-            'ww1'         => 'Первая мировая война',
-            'ww2'         => 'Великая Отечественная война',
-            'afghanistan'=> 'Афганская война',
-            'chechnya'   => 'Чеченская война',
-            default      => 'Военная служба',
-        };
     }
 }
