@@ -11,6 +11,7 @@ use App\Models\PersonPhoto;
 use App\Services\FamilyContext;
 use App\Models\MemorialPhoto;
 use App\Models\PersonEvent;
+use App\Models\PersonMilitaryService;
 
 class Person extends Model
 {
