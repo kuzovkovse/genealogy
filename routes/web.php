@@ -120,8 +120,6 @@ Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
     Route::delete('/people/photos/{photo}', [PersonPhotoController::class, 'destroy'])
         ->name('people.photos.destroy');
 
-    Route::delete('/people/{person}/gallery/{photo}', [PersonController::class, 'destroyGalleryPhoto'])
-        ->name('people.gallery.photos.destroy');
 
     /*
     |--------------------------------------------------------------------------

@@ -20,16 +20,16 @@
             </div>
         </div>
 
-        {{-- =======================
-         | READ-ONLY
-         ======================= --}}
+        {{-- =========================
+         | READ ONLY
+         ========================= --}}
         @if($person->militaryServices->count())
             <div id="military-readonly">
                 @foreach($person->militaryServices as $service)
                     <div class="border rounded p-3 mb-3 bg-light">
 
                         <div class="fw-bold">
-                            {{ $service->warLabel() ?? 'Военная служба' }}
+                            {{ $service->warLabel() }}
                         </div>
 
                         <div class="text-muted small">
@@ -41,71 +41,76 @@
 
                         @if($service->draft_year || $service->service_end)
                             <div class="small mt-1">
-                                Служба: {{ $service->draft_year ?? '—' }} — {{ $service->service_end ?? '—' }}
+                                Служба:
+                                {{ $service->draft_year ?? '—' }}
+                                —
+                                {{ $service->service_end ?? '—' }}
                             </div>
                         @endif
 
-                        {{-- Документы --}}
+                        {{-- 📎 Документы --}}
                         <div class="mt-3">
                             <div class="fw-semibold small mb-1">📎 Документы</div>
 
-                            @if($service->documents && $service->documents->count())
-                                <ul class="list-unstyled small mb-0">
-                                    @foreach($service->documents as $doc)
-                                        <li class="mb-1">
-                                            @if($doc->isImage())
-                                                🖼
-                                            @else
-                                                📄
-                                            @endif
+                            @forelse($service->documents as $doc)
+                                <div class="small d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span>{{ $doc->type === 'image' ? '🖼' : '📄' }}</span>
 
-                                            <a href="{{ $doc->url() }}" target="_blank">
-                                                {{ $doc->title ?? 'Документ' }}
-                                            </a>
+                                        <a href="{{ asset('storage/'.$doc->file_path) }}"
+                                           target="_blank">
+                                            {{ $doc->title ?? $doc->original_name }}
+                                        </a>
 
-                                            @if($doc->document_date)
-                                                <span class="text-muted">
-                                                    — {{ \Carbon\Carbon::parse($doc->document_date)->format('d.m.Y') }}
-                                                </span>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
+                                        @if($doc->document_date)
+                                            <span class="text-muted">
+                                                ({{ $doc->document_date->format('d.m.Y') }})
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <form method="POST"
+                                          action="{{ route('military.documents.destroy', $doc) }}"
+                                          onsubmit="return confirm('Удалить документ?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger">✕</button>
+                                    </form>
+                                </div>
+                            @empty
                                 <div class="text-muted small">
                                     Документы не добавлены
                                 </div>
-                            @endif
+                            @endforelse
                         </div>
                     </div>
                 @endforeach
             </div>
         @endif
 
-        {{-- =======================
+        {{-- =========================
          | РЕДАКТИРОВАНИЕ
-         ======================= --}}
+         ========================= --}}
         <div id="military-edit" style="display:none">
 
             @foreach($person->militaryServices as $service)
+
+                {{-- Редактирование службы --}}
                 <form method="POST"
                       action="{{ route('military.update', $service) }}"
-                      enctype="multipart/form-data"
-                      class="border rounded p-3 mb-4">
-
+                      class="border rounded p-3 mb-3">
                     @csrf
                     @method('PATCH')
 
                     <h6 class="mb-3">✏️ Редактирование службы</h6>
 
                     <div class="row g-3">
-
                         <div class="col-md-6">
                             <label class="form-label">Война / конфликт *</label>
                             <select name="war_type" class="form-select" required>
                                 <option value="">—</option>
-                                <option value="ww2" @selected($service->war_type === 'ww2')>Великая Отечественная</option>
-                                <option value="ww1" @selected($service->war_type === 'ww1')>Первая мировая</option>
+                                <option value="ww2" @selected($service->war_type === 'ww2')>ВОВ</option>
+                                <option value="ww1" @selected($service->war_type === 'ww1')>ПМВ</option>
                                 <option value="afghanistan" @selected($service->war_type === 'afghanistan')>Афганистан</option>
                                 <option value="chechnya" @selected($service->war_type === 'chechnya')>Чечня</option>
                                 <option value="other" @selected($service->war_type === 'other')>Другое</option>
@@ -114,123 +119,107 @@
 
                         <div class="col-md-6">
                             <label class="form-label">Звание</label>
-                            <input name="rank" class="form-control" value="{{ $service->rank }}">
+                            <input name="rank"
+                                   class="form-control"
+                                   value="{{ $service->rank }}">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Воинская часть</label>
-                            <input name="unit" class="form-control" value="{{ $service->unit }}">
+                            <input name="unit"
+                                   class="form-control"
+                                   value="{{ $service->unit }}">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Год призыва</label>
-                            <input name="draft_year" type="number" class="form-control" value="{{ $service->draft_year }}">
+                            <input name="draft_year"
+                                   type="number"
+                                   class="form-control"
+                                   value="{{ $service->draft_year }}">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Год окончания</label>
-                            <input name="service_end" type="number" class="form-control" value="{{ $service->service_end }}">
+                            <input name="service_end"
+                                   type="number"
+                                   class="form-control"
+                                   value="{{ $service->service_end }}">
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Награды</label>
-                            <textarea name="awards" class="form-control" rows="2">{{ $service->awards }}</textarea>
+                            <textarea name="awards"
+                                      class="form-control"
+                                      rows="2">{{ $service->awards }}</textarea>
                         </div>
                     </div>
 
-                    {{-- 📎 ДОКУМЕНТЫ --}}
-                    <div class="mt-4">
-                        <div class="fw-semibold small mb-2">📎 Документы службы</div>
-
-                        {{-- Список документов --}}
-                        @if($service->documents && $service->documents->count())
-                            <ul class="list-unstyled small mb-3">
-                                @foreach($service->documents as $doc)
-                                    <li class="d-flex justify-content-between align-items-center mb-1">
-                                        <div>
-                                            {{ $doc->title ?? 'Документ' }}
-                                            @if($doc->document_date)
-                                                <span class="text-muted">
-                                                    ({{ \Carbon\Carbon::parse($doc->document_date)->format('d.m.Y') }})
-                                                </span>
-                                            @endif
-                                        </div>
-
-                                        <form method="POST"
-                                              action="{{ route('military.documents.destroy', $doc) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger">
-                                                Удалить
-                                            </button>
-                                        </form>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-
-                        {{-- Добавление документа --}}
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label small">Название документа</label>
-                                <input name="title"
-                                       class="form-control form-control-sm"
-                                       placeholder="Например: Приказ о награждении">
-                            </div>
-
-                            <div class="col-md-3">
-                                <label class="form-label small">Дата документа</label>
-                                <input type="date"
-                                       name="document_date"
-                                       class="form-control form-control-sm">
-                            </div>
-
-                            <div class="col-md-5">
-                                <label class="form-label small">Файл (PDF или изображение)</label>
-                                <input type="file"
-                                       name="file"
-                                       accept="image/*,.pdf"
-                                       class="form-control form-control-sm">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2 mt-3">
-                        <button class="btn btn-primary btn-sm">💾 Сохранить</button>
-
-                        <form method="POST"
-                              action="{{ route('military.destroy', $service) }}"
-                              onsubmit="return confirm('Удалить службу?')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-outline-danger btn-sm">
-                                🗑 Удалить службу
-                            </button>
-                        </form>
-                    </div>
+                    <button class="btn btn-primary btn-sm mt-3">
+                        💾 Сохранить изменения
+                    </button>
                 </form>
+
+                {{-- 📎 Добавление документа --}}
+                <form method="POST"
+                      action="{{ route('military.documents.store', $service) }}"
+                      enctype="multipart/form-data"
+                      class="border rounded p-3 mb-4 bg-light">
+                    @csrf
+
+                    <div class="fw-semibold small mb-2">
+                        📎 Добавить документ
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <input name="title"
+                                   class="form-control form-control-sm"
+                                   placeholder="Название документа">
+                        </div>
+
+                        <div class="col-md-3">
+                            <input type="date"
+                                   name="document_date"
+                                   class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-md-5">
+                            <input type="file"
+                                   name="file"
+                                   accept="image/*,.pdf"
+                                   class="form-control form-control-sm"
+                                   required>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-sm mt-2">
+                        📎 Загрузить документ
+                    </button>
+                </form>
+
             @endforeach
         </div>
 
-        {{-- =======================
-         | ДОБАВЛЕНИЕ
-         ======================= --}}
+        {{-- =========================
+         | ДОБАВЛЕНИЕ СЛУЖБЫ
+         ========================= --}}
         <div id="military-add" style="display:none">
             <form method="POST"
                   action="{{ route('military.store', $person) }}"
                   class="border rounded p-3 mt-3">
-
                 @csrf
 
                 <h6 class="mb-3">➕ Добавить службу</h6>
 
                 <div class="row g-3">
-
                     <div class="col-md-6">
-                        <select name="war_type" class="form-select" required>
+                        <select name="war_type"
+                                class="form-select"
+                                required>
                             <option value="">Война / конфликт *</option>
-                            <option value="ww2">Великая Отечественная</option>
-                            <option value="ww1">Первая мировая</option>
+                            <option value="ww2">ВОВ</option>
+                            <option value="ww1">ПМВ</option>
                             <option value="afghanistan">Афганистан</option>
                             <option value="chechnya">Чечня</option>
                             <option value="other">Другое</option>
@@ -238,23 +227,36 @@
                     </div>
 
                     <div class="col-md-6">
-                        <input name="rank" class="form-control" placeholder="Звание">
+                        <input name="rank"
+                               class="form-control"
+                               placeholder="Звание">
                     </div>
 
                     <div class="col-md-6">
-                        <input name="unit" class="form-control" placeholder="Воинская часть">
+                        <input name="unit"
+                               class="form-control"
+                               placeholder="Воинская часть">
                     </div>
 
                     <div class="col-md-3">
-                        <input name="draft_year" type="number" class="form-control" placeholder="Год призыва">
+                        <input name="draft_year"
+                               type="number"
+                               class="form-control"
+                               placeholder="Год призыва">
                     </div>
 
                     <div class="col-md-3">
-                        <input name="service_end" type="number" class="form-control" placeholder="Год окончания">
+                        <input name="service_end"
+                               type="number"
+                               class="form-control"
+                               placeholder="Год окончания">
                     </div>
 
                     <div class="col-12">
-                        <textarea name="awards" class="form-control" rows="2" placeholder="Награды"></textarea>
+                        <textarea name="awards"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Награды"></textarea>
                     </div>
                 </div>
 

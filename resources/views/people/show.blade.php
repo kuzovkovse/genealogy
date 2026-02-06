@@ -469,7 +469,7 @@
 
             <div class="person-main">
                 <div class="person-name">
-                    {{ $person->last_name }} {{ $person->first_name }}
+                    {{ $person->fullName() }}
 
                     @if(
                         $person->gender === 'female'
@@ -661,8 +661,6 @@
         @endif
     {{-- ================== ФОТОГАЛЛЕРЕЯ ================== --}}
     @include('people.partials.gallery')
-    {{-- ================== ДОБАВЛЕНИЕ ФОТО ================== --}}
-    @include('people.partials.photo-form')
     {{-- ================== ДОБАВЛЕНИЕ ДОКУМЕНТОВ ================== --}}
     @include('people.partials.documents')
 
