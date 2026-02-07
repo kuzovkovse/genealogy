@@ -18,10 +18,11 @@ class PersonPolicy
 
     /**
      * Создание человека
+     * (роль проверяется middleware)
      */
     public function create(User $user): bool
     {
-        return FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::has();
     }
 
     /**
@@ -29,9 +30,7 @@ class PersonPolicy
      */
     public function update(User $user, Person $person): bool
     {
-        return
-            FamilyContext::belongsToFamily($person->family_id)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::belongsToFamily($person->family_id);
     }
 
     /**
@@ -39,9 +38,7 @@ class PersonPolicy
      */
     public function delete(User $user, Person $person): bool
     {
-        return
-            FamilyContext::belongsToFamily($person->family_id)
-            && FamilyContext::hasRole('owner');
+        return FamilyContext::belongsToFamily($person->family_id);
     }
 
     /**
@@ -49,8 +46,6 @@ class PersonPolicy
      */
     public function upload(User $user, Person $person): bool
     {
-        return
-            FamilyContext::belongsToFamily($person->family_id)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::belongsToFamily($person->family_id);
     }
 }

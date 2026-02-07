@@ -10,10 +10,11 @@ class CouplePolicy
 {
     /**
      * Создание связи
+     * (роль проверяется middleware)
      */
     public function create(User $user): bool
     {
-        return FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::has();
     }
 
     /**
@@ -21,9 +22,7 @@ class CouplePolicy
      */
     public function update(User $user, Couple $couple): bool
     {
-        return
-            FamilyContext::belongsToFamily($couple->family_id)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::belongsToFamily($couple->family_id);
     }
 
     /**
@@ -31,9 +30,7 @@ class CouplePolicy
      */
     public function delete(User $user, Couple $couple): bool
     {
-        return
-            FamilyContext::belongsToFamily($couple->family_id)
-            && FamilyContext::hasRole('owner');
+        return FamilyContext::belongsToFamily($couple->family_id);
     }
 
     /**
@@ -41,8 +38,6 @@ class CouplePolicy
      */
     public function manageChildren(User $user, Couple $couple): bool
     {
-        return
-            FamilyContext::belongsToFamily($couple->family_id)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        return FamilyContext::belongsToFamily($couple->family_id);
     }
 }
