@@ -12,6 +12,7 @@ use App\Services\FamilyContext;
 use App\Models\MemorialPhoto;
 use App\Models\PersonEvent;
 use App\Models\PersonMilitaryService;
+use App\Services\PersonNarrativeService;
 
 class Person extends Model
 {
@@ -42,6 +43,15 @@ class Person extends Model
         'burial_lat',
         'burial_lng',
     ];
+
+    /* =========================================================
+ * 🕊 ЖИВАЯ ФРАЗА
+ * ========================================================= */
+    public function getNarrativePhraseAttribute(): ?string
+    {
+        return app(PersonNarrativeService::class)->build($this);
+    }
+
 
     /* =========================================================
      * 📸 ФОТО ЖИЗНИ (ВАЖНО!)
