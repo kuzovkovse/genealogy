@@ -482,11 +482,29 @@
                     @endif
                 </div>
 
+                @php
+                    $hideAge =
+                        $person->narrative_phrase
+                        && str_starts_with($person->narrative_phrase, 'Прожил');
+                @endphp
+
                 <div class="person-life">
                     {{ $birth?->year ?? '?' }} — {{ $death?->year ?? 'н.в.' }}
-                    @if($age) · {{ (int) floor($age) }} лет @endif
-                    @if($death) <span class="candle">🕯</span> @endif
+
+                    @if($age && !$hideAge)
+                        · {{ (int) floor($age) }} лет
+                    @endif
+
+                    @if($death)
+                        <span class="candle">🕯</span>
+                    @endif
                 </div>
+
+                @if($person->narrative_phrase)
+                    <div class="text-muted" style="font-size:14px; margin-bottom:10px;">
+                        {{ $person->narrative_phrase }}
+                    </div>
+                @endif
 
                 <div class="badges">
             <span class="badge {{ $person->gender }}">
