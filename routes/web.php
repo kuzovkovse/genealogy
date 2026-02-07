@@ -17,6 +17,7 @@ use App\Http\Controllers\TreeController;
 use App\Http\Controllers\PersonDocumentController;
 use App\Http\Controllers\PersonMilitaryServiceController;
 use App\Http\Controllers\PersonMilitaryDocumentController;
+use App\Http\Controllers\FamilyInviteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,17 +35,12 @@ Route::get('/avatar', [AvatarController::class, 'show'])
 
 /*
 |--------------------------------------------------------------------------
-| 🔐 Авторизованные маршруты + активная семья
+| 🔐 Авторизованные маршруты
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | 🏠 Дашборд
-    |--------------------------------------------------------------------------
-    */
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
     /*
@@ -63,78 +59,58 @@ Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
     */
     Route::resource('people', PersonController::class);
 
-    Route::patch('/people/{person}/biography', [PersonController::class, 'updateBiography'])
-        ->name('people.biography.update');
-
-    Route::post('/people/{person}/photo', [PersonController::class, 'updatePhoto'])
-        ->name('people.photo.update');
-
     /*
     |--------------------------------------------------------------------------
-    | 🪖 Участие в войнах
+    | ✏️ ДЕЙСТВИЯ (с ролями)
     |--------------------------------------------------------------------------
     */
-    Route::post('/people/{person}/military', [PersonMilitaryServiceController::class, 'store'])
-        ->name('military.store');
+    Route::middleware('family.role:owner,editor')->group(function () {
 
-    Route::patch('/people/military/{service}', [PersonMilitaryServiceController::class, 'update'])
-        ->name('military.update');
+        Route::patch('/people/{person}/biography', [PersonController::class, 'updateBiography'])
+            ->name('people.biography.update');
 
-    Route::delete('/people/military/{service}', [PersonMilitaryServiceController::class, 'destroy'])
-        ->name('military.destroy');
+        Route::post('/people/{person}/photo', [PersonController::class, 'updatePhoto'])
+            ->name('people.photo.update');
+
+        Route::post('/people/{person}/military', [PersonMilitaryServiceController::class, 'store'])
+            ->name('military.store');
+
+        Route::patch('/people/military/{service}', [PersonMilitaryServiceController::class, 'update'])
+            ->name('military.update');
+
+        Route::delete('/people/military/{service}', [PersonMilitaryServiceController::class, 'destroy'])
+            ->name('military.destroy');
+
+        Route::post('/person/{person}/couples', [CoupleController::class, 'store'])
+            ->name('couples.store');
+
+        Route::post('/people/{person}/photos', [PersonPhotoController::class, 'store'])
+            ->name('people.photos.store');
+
+        Route::post('/people/{person}/documents', [PersonDocumentController::class, 'store'])
+            ->name('people.documents.store');
+    });
 
     /*
     |--------------------------------------------------------------------------
-    | 💍 Браки и дети
+    | 🔥 ТОЛЬКО OWNER
     |--------------------------------------------------------------------------
     */
-    Route::post('/person/{person}/couples', [CoupleController::class, 'store'])->name('couples.store');
-    Route::patch('/couples/{couple}', [CoupleController::class, 'update'])->name('couples.update');
+    Route::middleware('family.role:owner')->group(function () {
 
-    Route::post('/couples/{couple}/children', [CoupleChildController::class, 'store'])
-        ->name('couples.children.store');
+        Route::delete('/people/photos/{photo}', [PersonPhotoController::class, 'destroy'])
+            ->name('people.photos.destroy');
 
-    Route::post('/couples/{couple}/children/attach', [CoupleChildController::class, 'attach'])
-        ->name('couples.children.attach');
+        Route::delete('/documents/{document}', [PersonDocumentController::class, 'destroy'])
+            ->name('documents.destroy');
 
-    Route::delete('/couples/{couple}/children/{child}', [CoupleChildController::class, 'detach'])
-        ->name('couples.children.detach');
-
-    /*
-    |--------------------------------------------------------------------------
-    | ⏳ События
-    |--------------------------------------------------------------------------
-    */
-    Route::post('/people/{person}/events', [PersonEventController::class, 'store'])->name('events.store');
-    Route::patch('/people/{person}/events/{event}', [PersonEventController::class, 'update'])->name('events.update');
-    Route::delete('/people/{person}/events/{event}', [PersonEventController::class, 'destroy'])->name('events.destroy');
+        Route::post('/families/{family}/invite', [FamilyInviteController::class, 'store'])
+            ->name('families.invite');
+    });
 
     /*
     |--------------------------------------------------------------------------
-    | 📸 Фотогалерея
-    |--------------------------------------------------------------------------
-    */
-    Route::post('/people/{person}/photos', [PersonPhotoController::class, 'store'])
-        ->name('people.photos.store');
-
-    Route::delete('/people/photos/{photo}', [PersonPhotoController::class, 'destroy'])
-        ->name('people.photos.destroy');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | 📄 Документы
-    |--------------------------------------------------------------------------
-    */
-    Route::post('/people/{person}/documents', [PersonDocumentController::class, 'store'])
-        ->name('people.documents.store');
-
-    Route::delete('/documents/{document}', [PersonDocumentController::class, 'destroy'])
-        ->name('documents.destroy');
-
-    /*
-    |--------------------------------------------------------------------------
-    | 🌳 Генеалогическое дерево
+    | 🌳 Дерево
     |--------------------------------------------------------------------------
     */
     Route::get('/tree-view/{person}', fn (Person $person) => view('tree.show', compact('person')))
@@ -142,38 +118,7 @@ Route::middleware(['auth', 'verified', 'active.family'])->group(function () {
 
     Route::get('/tree-json/{person}', [TreeController::class, 'show'])
         ->name('tree.json');
-
-    /*
-    |--------------------------------------------------------------------------
-    | 🕯 Место памяти
-    |--------------------------------------------------------------------------
-    */
-    Route::patch('/people/{person}/memorial', [PersonController::class, 'updateMemorial'])
-        ->name('people.memorial.update');
-
-    Route::post('/people/{person}/memorial/candle', [PersonController::class, 'lightCandle'])
-        ->middleware('throttle:3,1')
-        ->name('people.memorial.candle');
-
-    Route::post('/people/{person}/memorial/photos', [PersonController::class, 'storeMemorialPhoto'])
-        ->name('people.memorial.photos.store');
 });
-
-/*
-   |--------------------------------------------------------------------------
-   | ДОКУМЕНТЫ ВОЙНЫ
-   |--------------------------------------------------------------------------
-   */
-Route::post(
-    '/military/{service}/documents',
-    [PersonMilitaryDocumentController::class, 'store']
-)->name('military.documents.store');
-
-Route::delete(
-    '/military/documents/{document}',
-    [PersonMilitaryDocumentController::class, 'destroy']
-)->name('military.documents.destroy');
-
 
 /*
 |--------------------------------------------------------------------------

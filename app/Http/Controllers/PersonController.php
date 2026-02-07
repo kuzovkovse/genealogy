@@ -15,7 +15,7 @@ use App\Services\TimelineNarrativeService;
 use App\Services\TodayInHistoryService;
 use App\Services\RecentActivityService;
 use App\Services\NextStepService;
-
+use App\Services\MemoryProgressService;
 
 class PersonController extends Controller
 {
@@ -93,7 +93,7 @@ class PersonController extends Controller
      * =============================== */
     public function show(Person $person)
     {
-        $this->authorizePerson($person);
+        $this->authorize('view', $person);
 
         $familyId = FamilyContext::require()->id;
         $couples = $person->couples;
@@ -321,6 +321,10 @@ class PersonController extends Controller
                 ->count(),
         ]);
 
+        // ================= Прогресс памяти =================
+        $memoryProgress = app(MemoryProgressService::class)
+            ->build($person);
+
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
 
@@ -367,7 +371,8 @@ class PersonController extends Controller
             'kinship',
             'todayInHistory',
             'recentActivity',
-            'nextSteps'
+            'nextSteps',
+            'memoryProgress'
         ));
     }
 
@@ -376,7 +381,7 @@ class PersonController extends Controller
      * =============================== */
     public function edit(Person $person)
     {
-        $this->authorizePerson($person);
+        $this->authorize('update', $person);
         return view('people.edit', compact('person'));
     }
 
@@ -562,7 +567,7 @@ class PersonController extends Controller
 
     public function destroyGalleryPhoto(Person $person, PersonPhoto $photo)
     {
-        $this->authorizePerson($person);
+        $this->authorize('delete', $person);
 
         // защита от подмены
         if ($photo->person_id !== $person->id) {

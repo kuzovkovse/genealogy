@@ -189,14 +189,23 @@ class Person extends Model
 
 
     /* =========================================================
-     * 🏠 FAMILY SCOPE
-     * ========================================================= */
+      * 🏠 FAMILY SCOPE
+      * ========================================================= */
 
     protected static function booted()
     {
         static::addGlobalScope('family', function ($query) {
-            if (FamilyContext::has()) {
-                $query->where('family_id', FamilyContext::id());
+            // 🔧 ВАЖНО: не ограничиваем в консоли (tinker, artisan)
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            // 🔐 Ограничиваем только если есть активная семья
+            if (\App\Services\FamilyContext::has()) {
+                $query->where(
+                    'family_id',
+                    \App\Services\FamilyContext::id()
+                );
             }
         });
     }
