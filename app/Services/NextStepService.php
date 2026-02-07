@@ -6,15 +6,13 @@ use App\Models\Person;
 
 class NextStepService
 {
-    /**
-     * Возвращает массив подсказок по ключам блоков.
-     * Ключ = место показа (timeline / military / gallery)
-     */
     public function build(Person $person, array $context): array
     {
         $steps = [];
 
-        // 1️⃣ Пустая хронология
+        /* =========================
+         * 1️⃣ Пустая хронология
+         ========================= */
         if (($context['timeline_count'] ?? 0) === 0) {
             $steps['timeline'] = [
                 'icon' => '📌',
@@ -26,7 +24,9 @@ class NextStepService
             ];
         }
 
-        // 2️⃣ Военная служба БЕЗ документов
+        /* =========================
+         * 2️⃣ Военная служба без документов
+         ========================= */
         if (
             $person->is_war_participant
             && ($context['military_services_count'] ?? 0) > 0
@@ -42,7 +42,9 @@ class NextStepService
             ];
         }
 
-        // 3️⃣ Есть фото, но нет событий
+        /* =========================
+         * 3️⃣ Фото есть — событий нет
+         ========================= */
         if (
             ($context['photos_count'] ?? 0) > 0
             && ($context['timeline_count'] ?? 0) === 0
@@ -57,6 +59,33 @@ class NextStepService
                     ],
                 ];
             }
+        }
+
+        /* =========================
+         * 🧩 НОВОЕ — Фото детей
+         ========================= */
+        foreach ($person->couples as $couple) {
+
+            $children = $couple->children;
+
+            if ($children->isEmpty()) {
+                continue;
+            }
+
+            $childrenWithoutPhoto = $children->filter(fn ($child) => !$child->photo);
+
+            if ($childrenWithoutPhoto->isEmpty()) {
+                continue;
+            }
+
+            $steps['children_photos'][$couple->id] = [
+                'icon' => '📸',
+                'text' => 'Фотографии детей помогают сохранить живую память',
+                'action' => [
+                    'label' => 'Добавить фото в галерею',
+                    'js'     => 'toggleAddLifePhoto()',
+                ],
+            ];
         }
 
         return $steps;

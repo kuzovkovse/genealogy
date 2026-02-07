@@ -34,7 +34,14 @@
 
         {{-- ГАЛЕРЕЯ --}}
         @if($photos->isEmpty())
-            <div class="text-muted">Фотографии пока не добавлены</div>
+            <div class="text-muted fst-italic mb-2">
+                Здесь могут появиться фотографии из разных периодов жизни —
+                семейные снимки, важные события, редкие кадры.
+            </div>
+
+            @include('people.partials.next-step', [
+                'step' => $nextSteps['gallery'] ?? null
+            ])
         @else
             <div id="life-gallery" class="row g-3">
                 @foreach($photos as $photo)
@@ -91,11 +98,6 @@
                 @endforeach
             </div>
         @endif
-
-        @include('people.partials.next-step', [
-    'step' => $nextSteps['gallery'] ?? null
-])
-
 
         {{-- =======================
          | ДОБАВЛЕНИЕ ФОТО (СКРЫТО)
