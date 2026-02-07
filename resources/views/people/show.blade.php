@@ -424,8 +424,30 @@
             background: rgba(120,120,120,0.4);
         }
 
+        .timeline-narrative {
+            opacity: 0.8;
+        }
 
-    </style>
+        .timeline-narrative {
+            min-height: auto;
+        }
+
+        .timeline-narrative .timeline-content {
+            padding: 0;
+        }
+
+        .timeline-narrative-text {
+            font-size: 13px;
+            color: #9ca3af;          /* серый */
+            font-style: italic;
+            line-height: 1.2;
+
+            padding: 6px 0;          /* 👈 ВАЖНО: почти одна строка */
+            text-align: center;
+        }
+
+
+      </style>
 
     @php
         use Carbon\Carbon;

@@ -83,6 +83,19 @@
                         $eventId = $model?->id;
                     @endphp
 
+                    @if(($event['type'] ?? null) === 'narrative')
+                        <div class="timeline-item timeline-narrative">
+                            <div class="timeline-line"></div>
+
+                            <div class="timeline-content">
+                                <div class="timeline-narrative-text">
+                                    {{ $event['text'] }}
+                                </div>
+                            </div>
+                        </div>
+                        @continue
+                    @endif
+
                     <div class="timeline-item {{ $isSystem ? 'timeline-system' : '' }}">
                         <div class="timeline-line"></div>
 
