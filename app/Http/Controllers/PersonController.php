@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // ✅ ВАЖНО
 use Carbon\Carbon;
 use App\Models\Person;
 use App\Models\Couple;
@@ -19,6 +21,8 @@ use App\Services\MemoryProgressService;
 
 class PersonController extends Controller
 {
+    use AuthorizesRequests;
+
     /* ===============================
      * Список людей
      * =============================== */
@@ -58,7 +62,6 @@ class PersonController extends Controller
             'biography'        => 'nullable|string',
         ]);
 
-        // 💡 Автологика: девичья фамилия
         if (
             ($data['gender'] ?? null) === 'female'
             && empty($data['birth_last_name'])
@@ -67,14 +70,8 @@ class PersonController extends Controller
             $data['birth_last_name'] = $data['last_name'];
         }
 
-
-        if (($data['birth_date'] ?? '') === '') {
-            $data['birth_date'] = null;
-        }
-
-        if (($data['death_date'] ?? '') === '') {
-            $data['death_date'] = null;
-        }
+        $data['birth_date'] = $data['birth_date'] ?: null;
+        $data['death_date'] = $data['death_date'] ?: null;
 
         $data['family_id'] = $family->id;
         $data['photo'] = null;

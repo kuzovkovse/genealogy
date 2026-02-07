@@ -44,7 +44,6 @@
         align-items: center;
     }
 
-    /* ===== SPOUSE ===== */
     .spouse-card {
         display: flex;
         gap: 12px;
@@ -63,7 +62,6 @@
         border: 2px solid #e5e7eb;
     }
 
-    /* ===== CHILDREN ===== */
     .children {
         display: flex;
         gap: 12px;
@@ -87,11 +85,6 @@
         transform: translateY(-2px);
     }
 
-    .child-avatar {
-        position: relative;
-        display: inline-block;
-    }
-
     .child-photo {
         width: 44px;
         height: 44px;
@@ -99,28 +92,6 @@
         object-fit: cover;
         margin-bottom: 4px;
         border: 2px solid #e5e7eb;
-    }
-
-    .child-camera {
-        position: absolute;
-        bottom: -2px;
-        right: -2px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: #2563eb;
-        color: #fff;
-        font-size: 11px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #fff;
-        cursor: pointer;
-        z-index: 5;
-    }
-
-    .child-camera:hover {
-        background: #1d4ed8;
     }
 
     .child-name {
@@ -151,10 +122,6 @@
         line-height: 18px;
         cursor: pointer;
         padding: 0;
-    }
-
-    .child-remove-btn:hover {
-        background: #dc2626;
     }
 
     .add-child-box {
@@ -279,22 +246,13 @@
                                         </form>
                                     @endcan
 
-                                    <div class="child-avatar">
-                                        <img class="child-photo"
-                                             src="{{ $child->photo
-                                                ? asset('storage/'.$child->photo)
-                                                : route('avatar', [
-                                                    'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
-                                                    'gender' => $child->gender
-                                                ]) }}">
-
-                                        @if(!$child->photo)
-                                            <a href="{{ route('people.edit', $child) }}"
-                                               class="child-camera"
-                                               title="Добавить фотографию"
-                                               onclick="event.stopPropagation()">📷</a>
-                                        @endif
-                                    </div>
+                                    <img class="child-photo"
+                                         src="{{ $child->photo
+                                            ? asset('storage/'.$child->photo)
+                                            : route('avatar', [
+                                                'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
+                                                'gender' => $child->gender
+                                            ]) }}">
 
                                     <div class="child-name">{{ $child->first_name }}</div>
                                     <div class="child-role">
@@ -304,20 +262,19 @@
                             @endforeach
                         </div>
                     @else
-                        @if($count === 0)
-                            <div class="text-muted small mt-2">
-                                У этой семьи пока не указаны дети
-                                @can('manageChildren', $couple)
-                                    — добавьте первого
-                                @endcan
-                            </div>
-                        @endif
+                        <div class="text-muted small mt-2">
+                            У этой семьи пока не указаны дети
+                            @can('manageChildren', $couple)
+                                — добавьте первого
+                            @endcan
+                        </div>
+                    @endif
 
                     @can('manageChildren', $couple)
-                    <button class="btn btn-sm btn-link text-muted p-0 mt-2"
-                            onclick="toggleAddChild({{ $couple->id }})">
-                        ➕ Добавить ребёнка в эту семью
-                    </button>
+                        <button class="btn btn-sm btn-link text-muted p-0 mt-2"
+                                onclick="toggleAddChild({{ $couple->id }})">
+                            ➕ Добавить ребёнка в эту семью
+                        </button>
                     @endcan
 
                     <div class="add-child-box d-none" id="add-child-box-{{ $couple->id }}">
@@ -350,6 +307,7 @@
                             </form>
                         @endif
                     </div>
+
                 </div>
             @endforeach
         </div>
