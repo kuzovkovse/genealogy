@@ -645,6 +645,8 @@
     @include('people.partials.marriages')
     {{-- ================== МЕСТО ПАМЯТИ ================== --}}
     @include('people.partials.memorial-place')
+        {{-- ================= Сегодня в истории ================= --}}
+        @include('people.partials.today-in-history')
     {{-- ================= ХРОНОЛОГИЯ ================= --}}
     @include('people.partials.timeline')
     {{-- ================== БИОГРАФИЯ ================== --}}
@@ -703,8 +705,11 @@
     @include('people.partials.gallery')
     {{-- ================== ДОБАВЛЕНИЕ ДОКУМЕНТОВ ================== --}}
     @include('people.partials.documents')
+        {{-- ================== Последние изменения ================== --}}
+        @include('people.partials.recent-activity')
 
-    <a href="{{ route('people.index') }}" class="btn btn-link">← Назад</a>
+
+        <a href="{{ route('people.index') }}" class="btn btn-link">← Назад</a>
     <script>
         function toggleBiographyEdit() {
             const view = document.getElementById('biography-view');
