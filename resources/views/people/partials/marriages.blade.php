@@ -6,18 +6,27 @@
         margin-bottom: 32px;
     }
 
+    .family-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.05);
+        margin-bottom: 32px;
+    }
+
+    .family-subtitle {
+        font-size: 14px;
+        color: #6b7280;
+        font-style: italic;
+        margin-top: 4px;
+    }
+
     .marriage-card {
         background: #fff;
         border-radius: 16px;
         padding: 18px;
         box-shadow: 0 8px 24px rgba(0,0,0,.05);
         border-left: 6px solid transparent;
-        animation: fadeIn .25s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to   { opacity: 1; transform: none; }
     }
 
     .relation-marriage { border-left-color: #f59e0b; }
@@ -25,11 +34,7 @@
     .relation-parents  { border-left-color: #06b6d4; }
 
     .marriage-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         margin-bottom: 12px;
-        gap: 8px;
     }
 
     .marriage-title {
@@ -37,11 +42,6 @@
         display: flex;
         gap: 6px;
         align-items: center;
-    }
-
-    .marriage-dates {
-        font-size: 13px;
-        color: #6b7280;
     }
 
     /* ===== SPOUSE ===== */
@@ -79,11 +79,17 @@
         background: #f3f4f6;
         cursor: pointer;
         transition: transform .15s ease, background .15s ease;
+        position: relative;
     }
 
     .child-card:hover {
         background: #e5e7eb;
         transform: translateY(-2px);
+    }
+
+    .child-avatar {
+        position: relative;
+        display: inline-block;
     }
 
     .child-photo {
@@ -95,6 +101,28 @@
         border: 2px solid #e5e7eb;
     }
 
+    .child-camera {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #2563eb;
+        color: #fff;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #fff;
+        cursor: pointer;
+        z-index: 5;
+    }
+
+    .child-camera:hover {
+        background: #1d4ed8;
+    }
+
     .child-name {
         font-size: 13px;
         font-weight: 500;
@@ -104,18 +132,6 @@
     .child-role {
         font-size: 11px;
         color: #6b7280;
-    }
-
-    /* ===== ADD CHILD ===== */
-    .add-child-box {
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #d1d5db;
-    }
-
-    /* ===== Отвязка детей ===== */
-    .child-card {
-        position: relative;
     }
 
     .child-remove {
@@ -141,7 +157,19 @@
         background: #dc2626;
     }
 
+    .add-child-box {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed #d1d5db;
+    }
 
+    .empty-family {
+        padding: 24px;
+        border-radius: 16px;
+        background: #fafafa;
+        color: #6b7280;
+        font-style: italic;
+    }
 </style>
 
 @php
@@ -154,211 +182,178 @@
     ];
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Связи и дети</h2>
-    <button class="btn btn-sm btn-outline-primary"
-            onclick="document.getElementById('relationship-form-container').classList.toggle('d-none')">
-        ➕ Создать связь
-    </button>
-</div>
+<div class="family-card">
 
-<div id="relationship-form-container" class="d-none">
-    @include('people.partials.relationship-form')
-</div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-0">👨‍👩‍👧 Семья и дети</h3>
+            <div class="family-subtitle">
+                Здесь постепенно складывается семейная история — партнёры и дети.
+            </div>
+        </div>
 
-<div class="marriages">
+        <button class="btn btn-sm btn-outline-primary"
+                onclick="document.getElementById('relationship-form-container').classList.toggle('d-none')">
+            ➕ Добавить партнёра
+        </button>
+    </div>
 
-    @forelse($person->couples as $couple)
-        @php
-            $type = $couple->relation_type ?? 'marriage';
-            $relation = $relationMap[$type];
+    <div id="relationship-form-container" class="d-none mb-3">
+        @include('people.partials.relationship-form')
+    </div>
 
-            $spouse = $couple->person_1_id === $person->id
-                ? $couple->person2
-                : $couple->person1;
+    @if($person->couples->isEmpty())
+        <div class="empty-family">
+            Пока здесь нет семейных связей.
+            Начните с добавления партнёра — дальше появятся дети и события жизни.
+        </div>
+    @else
+        <div class="marriages">
+            @foreach($person->couples as $couple)
+                @php
+                    $relation = $relationMap[$couple->relation_type ?? 'marriage'];
 
-            $start = $couple->married_at ? Carbon::parse($couple->married_at) : null;
-            $end = $couple->divorced_at
-    ? Carbon::parse($couple->divorced_at)
-    : (
-        $spouse?->death_date
-            ? Carbon::parse($spouse->death_date)
-            : (
-                $person->death_date
-                    ? Carbon::parse($person->death_date)
-                    : null
-            )
-    );
-        @endphp
+                    $spouse = $couple->person_1_id === $person->id
+                        ? $couple->person2
+                        : $couple->person1;
 
-        <div class="marriage-card {{ $relation['class'] }}">
+                    $children = $couple->children
+                        ->sortBy(fn($c) => $c->birth_date ?? '9999-12-31')
+                        ->values();
 
-            <div class="marriage-header">
-                <div class="marriage-title">
-                    {{ $relation['icon'] }} {{ $relation['label'] }}
-                </div>
-                <div class="marriage-dates">
-                    @if($type === 'parents')
-                        Совместные родители
-                    @else
-                        {{ $start ? 'с '.$start->year : '' }}
-                        {{ $end ? 'по '.$end->year : 'по настоящее время' }}
+                    $count = $children->count();
+                @endphp
 
-                        @if($couple->divorced_at)
-                            · развод
-                        @elseif($spouse?->death_date || $person->death_date)
-                            · до смерти
-                        @endif
+                <div class="marriage-card {{ $relation['class'] }}">
+                    <div class="marriage-header">
+                        <div class="marriage-title">
+                            {{ $relation['icon'] }} {{ $relation['label'] }}
+                        </div>
+                    </div>
+
+                    @if($spouse)
+                        <div class="spouse-card">
+                            <img class="spouse-photo"
+                                 src="{{ $spouse->photo
+                                    ? asset('storage/'.$spouse->photo)
+                                    : route('avatar', [
+                                        'name' => mb_substr($spouse->first_name,0,1).mb_substr($spouse->last_name ?? '',0,1),
+                                        'gender' => $spouse->gender
+                                    ]) }}">
+                            <div>
+                                <strong>{{ $spouse->last_name }} {{ $spouse->first_name }}</strong><br>
+                                <small class="text-muted">
+                                    {{ $spouse->birth_date ? Carbon::parse($spouse->birth_date)->year : '?' }}
+                                    —
+                                    {{ $spouse->death_date ? Carbon::parse($spouse->death_date)->year : 'н.в.' }}
+                                </small>
+                            </div>
+                        </div>
                     @endif
-                </div>
-            </div>
 
-            {{-- СПУТНИК --}}
-            @if($spouse)
-                <div class="spouse-card">
-                    <img class="spouse-photo"
-                         src="{{ $spouse->photo
-                        ? asset('storage/'.$spouse->photo)
-                        : route('avatar', [
-                            'name' => mb_substr($spouse->first_name,0,1).mb_substr($spouse->last_name ?? '',0,1),
-                            'gender' => $spouse->gender
-                        ]) }}">
-                    <div>
-                        <strong>{{ $spouse->last_name }} {{ $spouse->first_name }}</strong><br>
-                        <small class="text-muted">
-                            {{ $spouse->birth_date ? Carbon::parse($spouse->birth_date)->year : '?' }}
-                            —
-                            {{ $spouse->death_date ? Carbon::parse($spouse->death_date)->year : 'н.в.' }}
-                        </small>
-                    </div>
-                </div>
-            @endif
+                    @if($count)
+                        <div class="children">
+                            @foreach($children as $i => $child)
+                                @php
+                                    $order =
+                                        $count < 2 ? null :
+                                        ($i === 0 ? 'Старший' : ($i === $count - 1 ? 'Младший' : 'Средний'));
 
-            {{-- 👶 ДЕТИ --}}
-            @php
-                $children = $couple->children
-                    ->sortBy(fn($c) => $c->birth_date ?? '9999-12-31')
-                    ->values();
+                                    $role = $child->gender === 'male' ? 'Сын' : 'Дочь';
+                                @endphp
 
-                $count = $children->count();
-            @endphp
+                                <div class="child-card"
+                                     onclick="window.location.href='{{ route('people.show', $child) }}'">
 
-            <div class="children">
-                @foreach($children as $i => $child)
-                    @php
-                        // порядок
-                        if ($count < 2) {
-                            $order = null;
-                        } elseif ($i === 0) {
-                            $order = 'Старший';
-                        } elseif ($i === $count - 1) {
-                            $order = 'Младший';
-                        } else {
-                            $order = 'Средний';
-                        }
+                                    <form method="POST"
+                                          action="{{ route('couples.children.detach', [$couple, $child]) }}"
+                                          onsubmit="return confirm('Убрать ребёнка из этой семьи?')"
+                                          class="child-remove"
+                                          onclick="event.stopPropagation()">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="child-remove-btn">✕</button>
+                                    </form>
 
-                        $role = $child->gender === 'male' ? 'Сын' : 'Дочь';
-                    @endphp
+                                    <div class="child-avatar">
+                                        <img class="child-photo"
+                                             src="{{ $child->photo
+                                                ? asset('storage/'.$child->photo)
+                                                : route('avatar', [
+                                                    'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
+                                                    'gender' => $child->gender
+                                                ]) }}">
 
-                    <div class="child-card"
-                         onclick="window.location.href='{{ route('people.show', $child) }}'">
+                                        @if(!$child->photo)
+                                            <a href="{{ route('people.edit', $child) }}"
+                                               class="child-camera"
+                                               title="Добавить фотографию"
+                                               onclick="event.stopPropagation()">📷</a>
+                                        @endif
+                                    </div>
 
-                        {{-- ❌ УБРАТЬ ИЗ БРАКА --}}
+                                    <div class="child-name">{{ $child->first_name }}</div>
+                                    <div class="child-role">
+                                        {{ $role }} @if($order) · {{ $order }} @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-muted small mt-2">
+                            У этой семьи пока нет детей.
+                            Добавьте первого — и история продолжится.
+                        </div>
+                    @endif
+
+                    <button class="btn btn-sm btn-link text-muted p-0 mt-2"
+                            onclick="toggleAddChild({{ $couple->id }})">
+                        ➕ Добавить ребёнка в эту семью
+                    </button>
+
+                    <div class="add-child-box d-none" id="add-child-box-{{ $couple->id }}">
                         <form method="POST"
-                              action="{{ route('couples.children.detach', [$couple, $child]) }}"
-                              onsubmit="return confirm('Убрать ребёнка из этого брака?')"
-                              class="child-remove"
-                              onclick="event.stopPropagation()">
+                              action="{{ route('couples.children.store', $couple) }}"
+                              class="mb-2">
                             @csrf
-                            @method('DELETE')
-
-                            <button type="submit"
-                                    class="child-remove-btn"
-                                    title="Убрать из брака">
-                                ✕
-                            </button>
+                            <div class="d-flex gap-2">
+                                <input name="first_name" class="form-control form-control-sm" placeholder="Имя" required>
+                                <input name="last_name" class="form-control form-control-sm" placeholder="Фамилия">
+                                <button class="btn btn-sm btn-outline-primary">➕</button>
+                            </div>
                         </form>
-                        <img class="child-photo"
-                             src="{{ $child->photo
-                    ? asset('storage/'.$child->photo)
-                    : route('avatar', [
-                        'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
-                        'gender' => $child->gender
-                    ]) }}">
 
-                        <div class="child-name">
-                            {{ $child->first_name }}
-                        </div>
-
-                        <div class="child-role">
-                            {{ $role }}
-                            @if($order)
-                                · {{ $order }}
-                            @endif
-                        </div>
+                        @if(isset($existingChildrenCandidates) && $existingChildrenCandidates->count())
+                            <form method="POST"
+                                  action="{{ route('couples.children.attach', $couple) }}">
+                                @csrf
+                                <div class="d-flex gap-2">
+                                    <select name="child_id" class="form-select form-select-sm" required>
+                                        <option value="">Выбрать существующего ребёнка</option>
+                                        @foreach($existingChildrenCandidates as $candidate)
+                                            <option value="{{ $candidate->id }}">
+                                                {{ $candidate->last_name }} {{ $candidate->first_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-secondary">🔗</button>
+                                </div>
+                            </form>
+                        @endif
                     </div>
-                @endforeach
-            </div>
-
-            {{-- ➕ ДОБАВИТЬ РЕБЁНКА --}}
-            <div class="add-child-box mt-2">
-
-                {{-- ➕ НОВЫЙ --}}
-                <form method="POST"
-                      action="{{ route('couples.children.store', $couple) }}"
-                      class="mb-2">
-                    @csrf
-
-                    <div class="d-flex gap-2 align-items-center">
-                        <input name="first_name"
-                               class="form-control form-control-sm"
-                               placeholder="Имя"
-                               required>
-
-                        <input name="last_name"
-                               class="form-control form-control-sm"
-                               placeholder="Фамилия">
-
-                        <button class="btn btn-sm btn-outline-primary"
-                                title="Добавить ребёнка">
-                            ➕
-                        </button>
-                    </div>
-                </form>
-
-                {{-- 🔗 СУЩЕСТВУЮЩИЙ --}}
-                @if(isset($existingChildrenCandidates) && $existingChildrenCandidates->count())
-                    <form method="POST"
-                          action="{{ route('couples.children.attach', $couple) }}">
-                        @csrf
-
-                        <div class="d-flex gap-2 align-items-center">
-                            <select name="child_id"
-                                    class="form-select form-select-sm"
-                                    required>
-                                <option value="">Выбрать существующего ребёнка</option>
-                                @foreach($existingChildrenCandidates as $candidate)
-                                    <option value="{{ $candidate->id }}">
-                                        {{ $candidate->last_name }} {{ $candidate->first_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    title="Привязать">
-                                🔗
-                            </button>
-                        </div>
-                    </form>
-                @endif
-
-            </div>
+                </div>
+            @endforeach
         </div>
-
-    @empty
-        <div class="text-muted fst-italic">
-            У человека пока нет зарегистрированных связей
-        </div>
-    @endforelse
-
+    @endif
 </div>
+
+<script>
+    function toggleAddChild(id) {
+        const el = document.getElementById('add-child-box-' + id);
+        if (!el) return;
+        el.classList.toggle('d-none');
+        if (!el.classList.contains('d-none')) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+</script>

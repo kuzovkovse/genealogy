@@ -649,54 +649,59 @@
         @include('people.partials.today-in-history')
     {{-- ================= ХРОНОЛОГИЯ ================= --}}
     @include('people.partials.timeline')
-    {{-- ================== БИОГРАФИЯ ================== --}}
-    <div class="biography-card">
+        {{-- ================== БИОГРАФИЯ ================== --}}
+        <div class="biography-card">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="mb-0">📖 История жизни</h3>
-            <button class="btn btn-sm btn-outline-primary"
-                    onclick="toggleBiographyEdit()">
-                ✏️ Редактировать
-            </button>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">📖 История жизни</h3>
+                <button class="btn btn-sm btn-outline-primary"
+                        onclick="toggleBiographyEdit()">
+                    ✏️ Редактировать
+                </button>
+            </div>
+
+            {{-- VIEW --}}
+            <div id="biography-view">
+                @if($person->biography)
+                    <div class="biography-text">
+                        {!! nl2br(e($person->biography)) !!}
+                    </div>
+                @else
+                    <div class="biography-empty">
+                        Здесь может появиться история жизни — воспоминания, важные моменты, слова близких.
+                    </div>
+
+                    @include('people.partials.next-step', [
+                        'step' => $nextSteps['biography'] ?? null
+                    ])
+                @endif
+            </div>
+
+            {{-- EDIT --}}
+            <div id="biography-edit" style="display:none;">
+                <form method="POST"
+                      action="{{ route('people.biography.update', $person) }}">
+                    @csrf
+                    @method('PATCH')
+
+                    <textarea name="biography"
+                              class="form-control mb-3"
+                              rows="8"
+                              placeholder="Опишите историю жизни человека...">{{ old('biography', $person->biography) }}</textarea>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary">💾 Сохранить</button>
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                onclick="toggleBiographyEdit()">
+                            Отмена
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
 
-        {{-- VIEW --}}
-        <div id="biography-view">
-            @if($person->biography)
-                <div class="biography-text">
-                    {!! nl2br(e($person->biography)) !!}
-                </div>
-            @else
-                <div class="biography-empty">
-                    История жизни пока не заполнена
-                </div>
-            @endif
-        </div>
-
-        {{-- EDIT --}}
-        <div id="biography-edit" style="display:none;">
-            <form method="POST"
-                  action="{{ route('people.biography.update', $person) }}">
-                @csrf
-                @method('PATCH')
-
-                <textarea name="biography"
-                          class="form-control mb-3"
-                          rows="8"
-                          placeholder="Опишите историю жизни человека...">{{ old('biography', $person->biography) }}</textarea>
-
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary">💾 Сохранить</button>
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            onclick="toggleBiographyEdit()">
-                        Отмена
-                    </button>
-                </div>
-            </form>
-        </div>
-
-    </div>
         {{-- ================== УЧАСТИЕ В ВОЙНАХ ================== --}}
         @if($person->is_war_participant)
             @include('people.partials.military-service')
