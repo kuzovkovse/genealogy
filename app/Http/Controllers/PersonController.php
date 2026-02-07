@@ -11,6 +11,7 @@ use App\Services\KinshipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\PersonPhoto;
+use App\Services\TimelineNarrativeService;
 
 
 
@@ -304,6 +305,9 @@ class PersonController extends Controller
         $timeline = $timeline
             ->sortBy('event_date')
             ->values();
+
+        $timeline = app(TimelineNarrativeService::class)
+            ->enrich($timeline, $person);
 
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
