@@ -14,7 +14,9 @@
 
     <div class="card-body">
 
-        {{-- Форма добавления --}}
+        {{-- =======================
+         | ФОРМА ДОБАВЛЕНИЯ
+         ======================= --}}
         <div id="add-document" class="mb-4" style="display:none;">
             <form method="POST"
                   action="{{ route('people.documents.store', $person) }}"
@@ -24,13 +26,19 @@
 
                 <div class="row g-2 mb-2">
                     <div class="col-md-4">
-                        <input class="form-control" name="title" placeholder="Название">
+                        <input class="form-control"
+                               name="title"
+                               placeholder="Название">
                     </div>
                     <div class="col-md-3">
-                        <input class="form-control" name="type" placeholder="Тип (паспорт, архив)">
+                        <input class="form-control"
+                               name="type"
+                               placeholder="Тип (паспорт, архив)">
                     </div>
                     <div class="col-md-2">
-                        <input class="form-control" name="year" placeholder="Год">
+                        <input class="form-control"
+                               name="year"
+                               placeholder="Год">
                     </div>
                 </div>
 
@@ -38,10 +46,15 @@
                           name="description"
                           placeholder="Описание"></textarea>
 
-                <input type="file" name="file" class="form-control mb-2" required>
+                <input type="file"
+                       name="file"
+                       class="form-control mb-2"
+                       required>
 
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary btn-sm">Сохранить</button>
+                    <button class="btn btn-primary btn-sm">
+                        💾 Сохранить
+                    </button>
                     <button type="button"
                             class="btn btn-outline-secondary btn-sm"
                             onclick="toggleBlock('add-document')">
@@ -51,9 +64,26 @@
             </form>
         </div>
 
-        {{-- Список документов --}}
+        {{-- =======================
+         | СПИСОК ДОКУМЕНТОВ
+         ======================= --}}
         @if($documents->isEmpty())
-            <div class="text-muted">Документы не добавлены</div>
+            <div class="text-muted mb-2">
+                Документы не добавлены
+            </div>
+
+            {{-- ПУСТОЕ СОСТОЯНИЕ / NEXT STEP --}}
+            <div class="mt-2 text-muted small">
+                <span class="me-1">📎</span>
+                Документы помогают подтвердить факты и сохранить подлинную память
+
+                <span class="ms-2 text-primary"
+                      role="button"
+                      style="cursor:pointer"
+                      onclick="toggleBlock('add-document')">
+                    Добавить первый документ
+                </span>
+            </div>
         @else
             <div class="list-group list-group-flush">
                 @foreach($documents as $doc)
@@ -63,7 +93,9 @@
                             <div class="fw-semibold">
                                 {{ $doc->title ?? 'Документ' }}
                                 @if($doc->year)
-                                    <span class="text-muted">({{ $doc->year }})</span>
+                                    <span class="text-muted">
+                                        ({{ $doc->year }})
+                                    </span>
                                 @endif
                             </div>
 
@@ -72,7 +104,9 @@
                             </div>
 
                             @if($doc->description)
-                                <div class="small mt-1">{{ $doc->description }}</div>
+                                <div class="small mt-1">
+                                    {{ $doc->description }}
+                                </div>
                             @endif
                         </div>
 
@@ -95,7 +129,9 @@
                                   action="{{ route('documents.destroy', $doc) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger">✖</button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    ✖
+                                </button>
                             </form>
                         </div>
 
@@ -103,5 +139,6 @@
                 @endforeach
             </div>
         @endif
+
     </div>
 </div>
