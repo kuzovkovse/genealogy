@@ -211,7 +211,9 @@
 
             </div>
         </div>
-
+        @include('people.partials.next-step', [
+                    'step' => $nextSteps['timeline'] ?? null
+                ])
     </div>
 @endif
 

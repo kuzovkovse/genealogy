@@ -83,9 +83,20 @@
                                 </div>
                             @endforelse
                         </div>
+
                     </div>
                 @endforeach
             </div>
+        @endif
+
+        {{-- NEXT STEP (только если нет документов) --}}
+        @if(
+            ($nextSteps['military'] ?? null)
+            && $person->militaryServices->flatMap(fn($s) => $s->documents)->count() === 0
+        )
+            @include('people.partials.next-step', [
+                'step' => $nextSteps['military']
+            ])
         @endif
 
         {{-- =========================
@@ -160,43 +171,55 @@
                     </button>
                 </form>
 
-                {{-- 📎 Добавление документа --}}
-                <form method="POST"
-                      action="{{ route('military.documents.store', $service) }}"
-                      enctype="multipart/form-data"
-                      class="border rounded p-3 mb-4 bg-light">
-                    @csrf
+                {{-- 📎 ДОБАВЛЕНИЕ ДОКУМЕНТА (ТОЛЬКО ЭТА ФОРМА) --}}
+                <div id="military-document-box"
+                     class="border rounded p-3 mb-4 bg-light"
+                     style="display:none;">
 
-                    <div class="fw-semibold small mb-2">
-                        📎 Добавить документ
-                    </div>
+                    <form method="POST"
+                          action="{{ route('military.documents.store', $service) }}"
+                          enctype="multipart/form-data">
+                        @csrf
 
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <input name="title"
-                                   class="form-control form-control-sm"
-                                   placeholder="Название документа">
+                        <div class="fw-semibold small mb-2">
+                            📎 Добавить документ
                         </div>
 
-                        <div class="col-md-3">
-                            <input type="date"
-                                   name="document_date"
-                                   class="form-control form-control-sm">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <input name="title"
+                                       class="form-control form-control-sm"
+                                       placeholder="Название документа">
+                            </div>
+
+                            <div class="col-md-3">
+                                <input type="date"
+                                       name="document_date"
+                                       class="form-control form-control-sm">
+                            </div>
+
+                            <div class="col-md-5">
+                                <input type="file"
+                                       name="file"
+                                       accept="image/*,.pdf"
+                                       class="form-control form-control-sm"
+                                       required>
+                            </div>
                         </div>
 
-                        <div class="col-md-5">
-                            <input type="file"
-                                   name="file"
-                                   accept="image/*,.pdf"
-                                   class="form-control form-control-sm"
-                                   required>
-                        </div>
-                    </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-outline-primary btn-sm">
+                                📎 Загрузить документ
+                            </button>
 
-                    <button class="btn btn-outline-primary btn-sm mt-2">
-                        📎 Загрузить документ
-                    </button>
-                </form>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    onclick="hideMilitaryDocumentForm()">
+                                Отмена
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
             @endforeach
         </div>
@@ -269,6 +292,9 @@
     </div>
 </div>
 
+{{-- =========================
+ | SCRIPTS
+ ========================= --}}
 <script>
     function toggleMilitaryEdit() {
         const el = document.getElementById('military-edit');
@@ -278,5 +304,22 @@
     function toggleAddMilitary() {
         const el = document.getElementById('military-add');
         el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleMilitaryDocumentForm() {
+        const edit = document.getElementById('military-edit');
+        const box = document.getElementById('military-document-box');
+
+        if (!edit || !box) return;
+
+        edit.style.display = 'block';
+        box.style.display = 'block';
+
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideMilitaryDocumentForm() {
+        const box = document.getElementById('military-document-box');
+        if (box) box.style.display = 'none';
     }
 </script>

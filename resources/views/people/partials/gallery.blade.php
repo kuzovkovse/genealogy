@@ -92,6 +92,11 @@
             </div>
         @endif
 
+        @include('people.partials.next-step', [
+    'step' => $nextSteps['gallery'] ?? null
+])
+
+
         {{-- =======================
          | ДОБАВЛЕНИЕ ФОТО (СКРЫТО)
          ======================= --}}

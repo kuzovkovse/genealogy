@@ -12,7 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\PersonPhoto;
 use App\Services\TimelineNarrativeService;
-
+use App\Services\TodayInHistoryService;
+use App\Services\RecentActivityService;
+use App\Services\NextStepService;
 
 
 class PersonController extends Controller
@@ -309,8 +311,26 @@ class PersonController extends Controller
         $timeline = app(TimelineNarrativeService::class)
             ->enrich($timeline, $person);
 
+        /* 🔹 Следующий шаг */
+        $nextSteps = app(NextStepService::class)->build($person, [
+            'timeline_count' => $timeline->count(),
+            'photos_count' => $person->photos()->count(),
+            'military_services_count' => $person->militaryServices()->count(),
+            'military_documents_count' => $person->militaryServices
+                ->flatMap(fn ($s) => $s->documents)
+                ->count(),
+        ]);
+
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
+
+// ================= Сегодня в истории =================
+        $todayInHistory = app(TodayInHistoryService::class)
+            ->build($person);
+
+// ================= Последние изменения =================
+        $recentActivity = app(RecentActivityService::class)
+            ->build($person);
 
         // ================= РОДСТВО (НОВОЕ) =================
         $extended = request()->boolean('extended');
@@ -344,7 +364,10 @@ class PersonController extends Controller
             'lastCandles',
             'marriageCandidates',
             'existingChildrenCandidates',
-            'kinship'
+            'kinship',
+            'todayInHistory',
+            'recentActivity',
+            'nextSteps'
         ));
     }
 
