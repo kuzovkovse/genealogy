@@ -1,6 +1,14 @@
 @extends('layouts.app')
 @section('title', $person->last_name . ' ' . $person->first_name)
 
+@familyRole('owner')
+<div>Я владелец</div>
+@endfamilyRole
+
+@familyRole(['owner','editor'])
+<div>Я могу редактировать</div>
+@endfamilyRole
+
 @section('content')
       <style>
         /* ===== HERO ===== */
@@ -543,9 +551,11 @@
 
             {{-- ПРАВАЯ ЧАСТЬ --}}
             <div class="hero-actions">
-                <a href="{{ route('people.edit', $person) }}" class="btn btn-outline-primary">
-                    ✏️ Редактировать
-                </a>
+                @can('update', $person)
+                    <a href="{{ route('people.edit', $person) }}" class="btn btn-outline-primary">
+                        ✏️ Редактировать
+                    </a>
+                @endcan
                 <div class="form-check form-switch ms-2">
                     <input
                         class="form-check-input"
@@ -642,7 +652,9 @@
             'siblings' => $kinship->siblings
         ])
     {{-- ================= БРАКИ ================= --}}
-    @include('people.partials.marriages')
+        <div id="marriages-block">
+        @include('people.partials.marriages')
+        </div>
     {{-- ================== МЕСТО ПАМЯТИ ================== --}}
     @include('people.partials.memorial-place')
         {{-- ================= Сегодня в истории ================= --}}
@@ -650,14 +662,15 @@
     {{-- ================= ХРОНОЛОГИЯ ================= --}}
     @include('people.partials.timeline')
         {{-- ================== БИОГРАФИЯ ================== --}}
-        <div class="biography-card">
+        <div id="biography-block" class="biography-card">
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="mb-0">📖 История жизни</h3>
-                <button class="btn btn-sm btn-outline-primary"
-                        onclick="toggleBiographyEdit()">
-                    ✏️ Редактировать
-                </button>
+                @can('update', $person)
+                    <button class="btn btn-sm btn-outline-primary">
+                        ✏️ Редактировать
+                    </button>
+                @endcan
             </div>
 
             {{-- VIEW --}}
@@ -712,6 +725,10 @@
     @include('people.partials.documents')
         {{-- ================== Последние изменения ================== --}}
         @include('people.partials.recent-activity')
+        {{-- ================== ПРОГРЕСС БАР ================== --}}
+        @include('people.partials.memory-progress', [
+            'progress' => $memoryProgress
+        ])
 
 
         <a href="{{ route('people.index') }}" class="btn btn-link">← Назад</a>
@@ -802,5 +819,31 @@
             });
         })();
     </script>
+
+      <script>
+          document.addEventListener('click', function (e) {
+              const btn = e.target.closest('.memory-progress-link');
+              if (!btn) return;
+
+              // 📜 Скролл
+              if (btn.dataset.scroll) {
+                  const target = document.querySelector(btn.dataset.scroll);
+                  if (target) {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+              }
+
+              // 🎬 Экшены
+              if (btn.dataset.action === 'open-gallery-form') {
+                  if (typeof toggleAddLifePhoto === 'function') {
+                      toggleAddLifePhoto();
+                      setTimeout(() => {
+                          const form = document.getElementById('add-life-photo');
+                          form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 200);
+                  }
+              }
+          });
+      </script>
 
 @endsection

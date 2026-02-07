@@ -192,10 +192,12 @@
             </div>
         </div>
 
-        <button class="btn btn-sm btn-outline-primary"
-                onclick="document.getElementById('relationship-form-container').classList.toggle('d-none')">
-            ➕ Добавить партнёра
-        </button>
+        @can('create', \App\Models\Couple::class)
+            <button class="btn btn-sm btn-outline-primary"
+                    onclick="toggleRelationshipForm()">
+                ➕ Добавить партнёра
+            </button>
+        @endcan
     </div>
 
     <div id="relationship-form-container" class="d-none mb-3">
@@ -265,15 +267,17 @@
                                 <div class="child-card"
                                      onclick="window.location.href='{{ route('people.show', $child) }}'">
 
-                                    <form method="POST"
-                                          action="{{ route('couples.children.detach', [$couple, $child]) }}"
-                                          onsubmit="return confirm('Убрать ребёнка из этой семьи?')"
-                                          class="child-remove"
-                                          onclick="event.stopPropagation()">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="child-remove-btn">✕</button>
-                                    </form>
+                                    @can('manageChildren', $couple)
+                                        <form method="POST"
+                                              action="{{ route('couples.children.detach', [$couple, $child]) }}"
+                                              onsubmit="return confirm('Убрать ребёнка из этой семьи?')"
+                                              class="child-remove"
+                                              onclick="event.stopPropagation()">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="child-remove-btn">✕</button>
+                                        </form>
+                                    @endcan
 
                                     <div class="child-avatar">
                                         <img class="child-photo"
@@ -300,16 +304,21 @@
                             @endforeach
                         </div>
                     @else
-                        <div class="text-muted small mt-2">
-                            У этой семьи пока нет детей.
-                            Добавьте первого — и история продолжится.
-                        </div>
-                    @endif
+                        @if($count === 0)
+                            <div class="text-muted small mt-2">
+                                У этой семьи пока не указаны дети
+                                @can('manageChildren', $couple)
+                                    — добавьте первого
+                                @endcan
+                            </div>
+                        @endif
 
+                    @can('manageChildren', $couple)
                     <button class="btn btn-sm btn-link text-muted p-0 mt-2"
                             onclick="toggleAddChild({{ $couple->id }})">
                         ➕ Добавить ребёнка в эту семью
                     </button>
+                    @endcan
 
                     <div class="add-child-box d-none" id="add-child-box-{{ $couple->id }}">
                         <form method="POST"

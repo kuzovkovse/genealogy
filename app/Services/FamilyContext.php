@@ -3,72 +3,86 @@
 namespace App\Services;
 
 use App\Models\Family;
+use Illuminate\Support\Facades\Auth;
 
 class FamilyContext
 {
     protected static ?Family $family = null;
 
-    /**
-     * Установить семью явно
-     */
-    public static function set(Family $family): void
+    /** Есть ли активная семья */
+    public static function has(): bool
     {
-        self::$family = $family;
-        session(['active_family_id' => $family->id]);
+        try {
+            static::require();
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
-    /**
-     * Установить семью по ID (без загрузки модели)
-     */
-    public static function setId(int $familyId): void
-    {
-        session(['active_family_id' => $familyId]);
-        self::$family = Family::find($familyId);
-    }
-
-    /**
-     * Получить текущую семью (может быть null)
-     */
-    public static function get(): ?Family
+    /** Получить активную семью или 403 */
+    public static function require(): Family
     {
         if (self::$family) {
             return self::$family;
         }
 
-        if (session()->has('active_family_id')) {
-            self::$family = Family::find(session('active_family_id'));
+        $user = Auth::user();
+
+        if (!$user) {
+            abort(403, 'Пользователь не авторизован');
         }
 
-        return self::$family;
-    }
-
-    /**
-     * Получить семью или 403
-     */
-    public static function require(): Family
-    {
-        $family = self::get();
+        $family = $user->families()->first();
 
         if (!$family) {
-            abort(403, 'АКТИВНАЯ СЕМЬЯ НЕ ВЫБРАНА');
+            abort(403, 'Семья не найдена');
         }
 
-        return $family;
+        return self::$family = $family;
     }
 
-    /**
-     * Проверка наличия контекста
-     */
-    public static function has(): bool
+    /** ID активной семьи */
+    public static function id(): ?int
     {
-        return (bool) self::get();
+        return static::has() ? static::require()->id : null;
     }
 
-    /**
-     * ID активной семьи
-     */
-    public static function id(): int
+    /** Роль пользователя в семье */
+    public static function role(): string
     {
-        return self::require()->id;
+        $user = Auth::user();
+
+        if (!$user) {
+            return 'guest';
+        }
+
+        $family = static::require();
+
+        $pivot = $family
+            ->users()
+            ->where('users.id', $user->id)
+            ->first()
+            ?->pivot;
+
+        return $pivot->role ?? 'guest';
+    }
+
+    /** Принадлежит ли объект активной семье */
+    public static function belongsToFamily(?int $familyId): bool
+    {
+        return $familyId !== null
+            && static::has()
+            && static::id() === $familyId;
+    }
+
+    /** Проверка ролей */
+    public static function hasRole(string|array $roles): bool
+    {
+        $current = static::role();
+
+        return is_array($roles)
+            ? in_array($current, $roles, true)
+            : $current === $roles;
     }
 }
