@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // ✅ ВАЖНО
 use Carbon\Carbon;
 use App\Models\Person;
 use App\Models\Couple;
@@ -18,36 +17,48 @@ use App\Services\TodayInHistoryService;
 use App\Services\RecentActivityService;
 use App\Services\NextStepService;
 use App\Services\MemoryProgressService;
+use App\Services\GenerationService;
+
 
 class PersonController extends Controller
 {
-    use AuthorizesRequests;
-
     /* ===============================
-     * Список людей
-     * =============================== */
-    public function index()
+  * 👥 Список людей (по поколениям)
+  * =============================== */
+    public function index(GenerationService $generationService)
     {
         $family = FamilyContext::require();
 
+        // Все люди семьи
         $people = Person::where('family_id', $family->id)
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
 
-        return view('people.index', compact('people'));
+        // Группировка по поколениям (I, II, III…)
+        $generations = $generationService->build($people);
+
+        return view('people.index', [
+            'people'      => $people,      // оставляем для совместимости
+            'generations' => $generations, // 👈 ОСНОВНОЕ
+        ]);
     }
 
+
     /* ===============================
-     * Создание
+     * ➕ Создание
      * =============================== */
     public function create()
     {
+        $this->authorize('create', Person::class);
+
         return view('people.create');
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Person::class);
+
         $family = FamilyContext::require();
 
         $data = $request->validate([
@@ -62,6 +73,7 @@ class PersonController extends Controller
             'biography'        => 'nullable|string',
         ]);
 
+        // 💡 автологика: девичья фамилия
         if (
             ($data['gender'] ?? null) === 'female'
             && empty($data['birth_last_name'])
@@ -70,11 +82,10 @@ class PersonController extends Controller
             $data['birth_last_name'] = $data['last_name'];
         }
 
-        $data['birth_date'] = $data['birth_date'] ?: null;
-        $data['death_date'] = $data['death_date'] ?: null;
-
-        $data['family_id'] = $family->id;
-        $data['photo'] = null;
+        $data['birth_date'] = empty($data['birth_date']) ? null : $data['birth_date'];
+        $data['death_date'] = empty($data['death_date']) ? null : $data['death_date'];
+        $data['family_id']  = $family->id;
+        $data['photo']      = null;
 
         if ($request->hasFile('photo')) {
             $data['photo'] = $request->file('photo')->store('people', 'public');
@@ -86,30 +97,63 @@ class PersonController extends Controller
     }
 
     /* ===============================
-     * Карточка человека
+     * 👤 Карточка человека
      * =============================== */
     public function show(Person $person)
     {
+        /**
+         * 🔐 Авторизация
+         * FamilyContext::require() будет вызван внутри policy
+         */
         $this->authorize('view', $person);
 
         $familyId = FamilyContext::require()->id;
+
         $couples = $person->couples;
 
-        // 👥 Кандидаты для создания связи
+        /* ---------- Кандидаты ---------- */
+
+        // текущий человек
+        $personId = $person->id;
+        $personGender = $person->gender;
+
+// 🔹 1. Все люди, которые уже состоят в любой паре
+        $peopleInAnyCouple = Couple::query()
+            ->select(['person_1_id', 'person_2_id'])
+            ->get()
+            ->flatMap(fn ($c) => [$c->person_1_id, $c->person_2_id])
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+// 🔹 2. Определяем допустимый пол партнёра
+        $allowedGender = match ($personGender) {
+            'male'   => 'female',
+            'female' => 'male',
+            default  => null, // если пол не указан — без фильтра
+        };
+
+// 🔹 3. Кандидаты в партнёры
         $marriageCandidates = Person::where('family_id', $familyId)
-            ->where('id', '!=', $person->id)
+            ->where('id', '!=', $personId)              // не сам
+            ->when($allowedGender, fn ($q) =>
+            $q->where('gender', $allowedGender)     // противоположный пол
+            )
+            ->whereNotIn('id', $peopleInAnyCouple)      // только без пары
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
 
-        // 👶 Кандидаты в дети (существующие)
+
         $existingChildrenCandidates = Person::where('family_id', $familyId)
-            ->whereNull('couple_id')          // ещё не в браке
-            ->where('id', '!=', $person->id)  // не сам
+            ->whereNull('couple_id')
+            ->where('id', '!=', $person->id)
             ->orderBy('birth_date')
             ->get();
 
-        /* ---------- РОДИТЕЛИ ---------- */
+        /* ---------- Родители ---------- */
+
         $parentCouple = $person->couple_id
             ? Couple::with(['person1', 'person2'])->find($person->couple_id)
             : null;
@@ -129,7 +173,8 @@ class PersonController extends Controller
             }
         }
 
-        /* ---------- ДЕДЫ / БАБУШКИ ---------- */
+        /* ---------- Деды / бабушки ---------- */
+
         $grandparentsFather = collect();
         $grandparentsMother = collect();
 
@@ -145,8 +190,10 @@ class PersonController extends Controller
             if ($mc?->person2) $grandparentsMother->push($mc->person2);
         }
 
-        /* ---------- БРАТЬЯ / СЁСТРЫ ---------- */
+        /* ---------- Братья / сёстры ---------- */
+
         $siblings = collect();
+
         if ($person->couple_id) {
             $siblings = Person::where('couple_id', $person->couple_id)
                 ->where('id', '!=', $person->id)
@@ -154,56 +201,10 @@ class PersonController extends Controller
                 ->get();
         }
 
-        /* ---------- СВОДНЫЕ ---------- */
-        $halfSiblingsFather = collect();
-        $halfSiblingsMother = collect();
+        /* ---------- Хронология ---------- */
 
-        if ($father) {
-            $fatherCouples = Couple::where(function ($q) use ($father) {
-                $q->where('person_1_id', $father->id)
-                    ->orWhere('person_2_id', $father->id);
-            })
-                ->where('id', '!=', $person->couple_id)
-                ->with('children')
-                ->get();
-
-            foreach ($fatherCouples as $c) {
-                $halfSiblingsFather = $halfSiblingsFather->merge(
-                    $c->children->where('family_id', $familyId)
-                );
-            }
-        }
-
-        if ($mother) {
-            $motherCouples = Couple::where(function ($q) use ($mother) {
-                $q->where('person_1_id', $mother->id)
-                    ->orWhere('person_2_id', $mother->id);
-            })
-                ->where('id', '!=', $person->couple_id)
-                ->with('children')
-                ->get();
-
-            foreach ($motherCouples as $c) {
-                $halfSiblingsMother = $halfSiblingsMother->merge(
-                    $c->children->where('family_id', $familyId)
-                );
-            }
-        }
-
-        $halfSiblingsFather = $halfSiblingsFather->where('id', '!=', $person->id)->unique('id')->values();
-        $halfSiblingsMother = $halfSiblingsMother->where('id', '!=', $person->id)->unique('id')->values();
-
-        /* ---------- ДЕТИ ---------- */
-        $childrenByCouple = [];
-        foreach ($couples as $couple) {
-            $childrenByCouple[$couple->id] =
-                $couple->children->where('family_id', $familyId);
-        }
-
-        /* ---------- ХРОНОЛОГИЯ ---------- */
         $timeline = collect();
 
-        /* 🔹 системные события */
         if ($person->birth_date) {
             $timeline->push([
                 'event_date' => $person->birth_date,
@@ -215,80 +216,6 @@ class PersonController extends Controller
             ]);
         }
 
-        foreach ($couples as $c) {
-            if ($c->married_at) {
-                $timeline->push([
-                    'event_date' => $c->married_at,
-                    'title' => 'Брак',
-                    'description' => null,
-                    'icon' => '💍',
-                    'is_system' => true,
-                    'model' => null,
-                ]);
-            }
-        }
-
-        foreach ($couples as $couple) {
-            foreach ($couple->children as $child) {
-                if ($child->birth_date) {
-                    $timeline->push([
-                        'event_date' => $child->birth_date,
-                        'title' => 'Рождение ' . ($child->gender === 'female' ? 'дочери' : 'сына'),
-                        'description' => $child->full_name,
-                        'icon' => '👶',
-                        'is_system' => true,
-                        'model' => null,
-                    ]);
-                }
-            }
-        }
-
-
-        /* ---------- ВОЕННАЯ СЛУЖБА ---------- */
-        foreach ($person->militaryServices as $service) {
-
-            // 🪖 Призыв
-            if ($service->draft_year) {
-                $timeline->push([
-                    'event_date' => Carbon::create($service->draft_year, 1, 1)->toDateString(),
-                    'title'      => 'Призван на военную службу',
-                    'description'=> trim(
-                        $service->warLabel()
-                        . ($service->unit ? ', ' . $service->unit : '')
-                    ),
-                    'icon'       => '🪖',
-                    'is_system'  => true,
-                    'model'      => null,
-                ]);
-            }
-
-            // 🎖 Окончание службы
-            if ($service->service_end) {
-                $timeline->push([
-                    'event_date' => Carbon::create($service->service_end, 12, 31)->toDateString(),
-                    'title'      => 'Окончание военной службы',
-                    'description'=> $service->warLabel(),
-                    'icon'       => '🎖',
-                    'is_system'  => true,
-                    'model'      => null,
-                ]);
-            }
-
-            // ✝ Гибель
-            if ($service->is_killed && $service->killed_date) {
-                $timeline->push([
-                    'event_date' => $service->killed_date,
-                    'title'      => 'Погиб в ходе службы',
-                    'description'=> $service->warLabel(),
-                    'icon'       => '✝',
-                    'is_system'  => true,
-                    'model'      => null,
-                ]);
-            }
-        }
-
-
-        /* 🔹 пользовательские события */
         foreach ($person->events as $event) {
             $timeline->push([
                 'event_date' => $event->event_date,
@@ -300,15 +227,13 @@ class PersonController extends Controller
             ]);
         }
 
-        /* 🔹 сортировка */
-        $timeline = $timeline
-            ->sortBy('event_date')
-            ->values();
+        $timeline = $timeline->sortBy('event_date')->values();
 
         $timeline = app(TimelineNarrativeService::class)
             ->enrich($timeline, $person);
 
-        /* 🔹 Следующий шаг */
+        /* ---------- Сервисы ---------- */
+
         $nextSteps = app(NextStepService::class)->build($person, [
             'timeline_count' => $timeline->count(),
             'photos_count' => $person->photos()->count(),
@@ -318,24 +243,17 @@ class PersonController extends Controller
                 ->count(),
         ]);
 
-        // ================= Прогресс памяти =================
-        $memoryProgress = app(MemoryProgressService::class)
-            ->build($person);
+        $memoryProgress = app(MemoryProgressService::class)->build($person);
 
         $activeCandlesCount = $person->activeCandles()->count();
         $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
 
-// ================= Сегодня в истории =================
-        $todayInHistory = app(TodayInHistoryService::class)
-            ->build($person);
+        $todayInHistory = app(TodayInHistoryService::class)->build($person);
+        $recentActivity = app(RecentActivityService::class)->build($person);
 
-// ================= Последние изменения =================
-        $recentActivity = app(RecentActivityService::class)
-            ->build($person);
+        /* ---------- Родство ---------- */
 
-        // ================= РОДСТВО (НОВОЕ) =================
         $extended = request()->boolean('extended');
-
         $kinshipService = app(KinshipService::class);
 
         $kinship = (object) [
@@ -357,9 +275,6 @@ class PersonController extends Controller
             'grandparentsFather',
             'grandparentsMother',
             'siblings',
-            'halfSiblingsFather',
-            'halfSiblingsMother',
-            'childrenByCouple',
             'timeline',
             'activeCandlesCount',
             'lastCandles',
@@ -373,18 +288,20 @@ class PersonController extends Controller
         ));
     }
 
+
     /* ===============================
-     * Редактирование
+     * ✏️ Редактирование
      * =============================== */
     public function edit(Person $person)
     {
         $this->authorize('update', $person);
+
         return view('people.edit', compact('person'));
     }
 
     public function update(Request $request, Person $person)
     {
-        $this->authorizePerson($person);
+        $this->authorize('update', $person);
 
         $data = $request->validate([
             'first_name'       => 'required|string|max:255',
@@ -397,7 +314,6 @@ class PersonController extends Controller
             'is_war_participant' => 'nullable|boolean',
         ]);
 
-// 💡 Автологика: девичья фамилия
         if (
             ($data['gender'] ?? null) === 'female'
             && empty($data['birth_last_name'])
@@ -406,25 +322,21 @@ class PersonController extends Controller
             $data['birth_last_name'] = $data['last_name'];
         }
 
-        if (($data['birth_date'] ?? '') === '') {
-            $data['birth_date'] = null;
-        }
-
-        if (($data['death_date'] ?? '') === '') {
-            $data['death_date'] = null;
-        }
+        $data['birth_date'] = empty($data['birth_date']) ? null : $data['birth_date'];
+        $data['death_date'] = empty($data['death_date']) ? null : $data['death_date'];
         $data['is_war_participant'] = $request->boolean('is_war_participant');
+
         $person->update($data);
 
         return redirect()->route('people.show', $person);
     }
 
     /* ===============================
-     * Фото человека
+     * 📷 Фото человека
      * =============================== */
     public function updatePhoto(Request $request, Person $person)
     {
-        $this->authorizePerson($person);
+        $this->authorize('update', $person);
 
         $request->validate([
             'photo' => ['required', 'image', 'max:2048'],
@@ -441,147 +353,51 @@ class PersonController extends Controller
     }
 
     /* ===============================
-     * Место памяти
+     * 🕯 Свеча памяти
      * =============================== */
-    public function updateMemorial(Request $request, Person $person)
+    public function lightCandle(Request $request, Person $person)
     {
-        $this->authorizePerson($person);
-
         if (!$person->death_date) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'burial_cemetery'    => 'nullable|string|max:255',
-            'burial_city'        => 'nullable|string|max:255',
-            'burial_place'       => 'nullable|string|max:255',
-            'burial_description' => 'nullable|string',
-            'burial_lat'         => 'nullable|numeric',
-            'burial_lng'         => 'nullable|numeric',
-        ]);
-
-        $person->update($data);
-
-        return back()->with('success', 'Место памяти сохранено');
-    }
-
-    /* ===============================
-     * Фото памяти
-     * =============================== */
-    public function storeMemorialPhoto(Request $request, Person $person)
-    {
-        $this->authorizePerson($person);
-
-        if (!$person->death_date) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'photo' => 'required|image|max:4096',
-            'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'taken_year' => 'nullable|integer|min:1800|max:' . date('Y'),
-        ]);
-
-        $path = $request->file('photo')->store('memorials', 'public');
-
-        MemorialPhoto::create([
-            'person_id'   => $person->id,
-            'image_path'  => $path,
-            'title'       => $data['title'] ?? null,
-            'description' => $data['description'] ?? null,
-            'taken_year'  => $data['taken_year'] ?? null,
-            'created_by'  => auth()->id(),
-        ]);
-
-        return back()->with('success', 'Фото добавлено');
-    }
-
-    /* ===============================
-     * Свеча
-     * =============================== */
-    public function lightCandle(Person $person)
-    {
-        $this->authorizePerson($person);
-
-        // нельзя зажигать живому
-        if (!$person->death_date) {
-            abort(403);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Свечу можно зажечь только для умершего человека',
+            ], 403);
         }
 
         $userId = auth()->id();
 
-        // ⏳ 1. Ограничение по времени (12 часов)
         $lastCandle = MemorialCandle::where('person_id', $person->id)
             ->where('user_id', $userId)
             ->latest('lit_at')
             ->first();
 
         if ($lastCandle && $lastCandle->lit_at->gt(now()->subHours(12))) {
-            return back()->with('error', 'Вы уже зажигали свечу недавно 🙏');
-        }
-
-        // 🔥 2. Ограничение по количеству активных свечей
-        $activeCount = MemorialCandle::where('person_id', $person->id)
-            ->where('user_id', $userId)
-            ->where('lit_at', '>=', now()->subDays(3)) // свеча «горит» 3 дня
-            ->count();
-
-        if ($activeCount >= 3) {
-            return back()->with('error', 'Слишком много зажжённых свечей 🙏');
+            return response()->json([
+                'ok' => false,
+                'message' => 'Вы уже зажигали свечу недавно 🙏',
+            ], 429);
         }
 
         MemorialCandle::create([
             'person_id' => $person->id,
             'user_id'   => $userId,
+            'visitor_name' => $request->input('visitor_name'),
             'lit_at'    => now(),
         ]);
 
-        return back()->with('success', '🕯 Свеча зажжена');
-    }
-
-    /* ===============================
- * 📖 ИСТОРИЯ ЖИЗНИ
- * =============================== */
-    public function updateBiography(Request $request, Person $person)
-    {
-        $this->authorizePerson($person);
-
-        $data = $request->validate([
-            'biography' => ['nullable', 'string'],
+        return response()->json([
+            'ok' => true,
+            'active_count' => $person->activeCandlesCount(),
+            'last_candles' => $person->memorialCandles()
+                ->latest('lit_at')
+                ->take(5)
+                ->get()
+                ->map(fn ($c) => [
+                    'name' => $c->visitor_name ?? 'Аноним',
+                    'time' => $c->lit_at?->locale('ru')->diffForHumans(),
+                ]),
         ]);
-
-        $person->update([
-            'biography' => $data['biography'],
-        ]);
-
-        return back()->with('success', 'История жизни сохранена');
     }
 
-    /* ===============================
-   * Удаление фото из галереи
-   * =============================== */
-
-    public function destroyGalleryPhoto(Person $person, PersonPhoto $photo)
-    {
-        $this->authorize('delete', $person);
-
-        // защита от подмены
-        if ($photo->person_id !== $person->id) {
-            abort(403);
-        }
-
-        if ($photo->image_path) {
-            Storage::disk('public')->delete($photo->image_path);
-        }
-
-        $photo->delete();
-
-        return back()->with('success', 'Фото удалено');
-    }
-
-    /* ===============================
-     * Защита
-     * =============================== */
 
 }

@@ -10,19 +10,20 @@ class CouplePolicy
 {
     /**
      * Создание связи
-     * (роль проверяется middleware)
      */
     public function create(User $user): bool
     {
-        return FamilyContext::has();
+        // создавать могут owner / editor (middleware уже ограничивает)
+        return FamilyContext::hasRole(['owner', 'editor']);
     }
 
     /**
-     * Обновление связи (даты, тип)
+     * Обновление связи
      */
     public function update(User $user, Couple $couple): bool
     {
-        return FamilyContext::belongsToFamily($couple->family_id);
+        return $this->belongsToActiveFamily($couple)
+            && FamilyContext::hasRole(['owner', 'editor']);
     }
 
     /**
@@ -30,7 +31,8 @@ class CouplePolicy
      */
     public function delete(User $user, Couple $couple): bool
     {
-        return FamilyContext::belongsToFamily($couple->family_id);
+        return $this->belongsToActiveFamily($couple)
+            && FamilyContext::hasRole(['owner', 'editor']);
     }
 
     /**
@@ -38,6 +40,21 @@ class CouplePolicy
      */
     public function manageChildren(User $user, Couple $couple): bool
     {
-        return FamilyContext::belongsToFamily($couple->family_id);
+        return $this->belongsToActiveFamily($couple)
+            && FamilyContext::hasRole(['owner', 'editor']);
+    }
+
+    /**
+     * 🔑 Проверка принадлежности пары активной семье
+     */
+    protected function belongsToActiveFamily(Couple $couple): bool
+    {
+        $familyId = FamilyContext::id();
+
+        return $familyId
+            && (
+                $couple->person1?->family_id === $familyId
+                || $couple->person2?->family_id === $familyId
+            );
     }
 }

@@ -73,7 +73,9 @@
                     <option value="">Выберите человека</option>
                     @foreach($marriageCandidates as $candidate)
                         <option value="{{ $candidate->id }}">
-                            {{ $candidate->last_name }} {{ $candidate->first_name }}
+                            {{ $candidate->last_name }}
+                            {{ $candidate->first_name }}
+                            {{ $candidate->patronymic }}
                         </option>
                     @endforeach
                 </select>

@@ -16,6 +16,9 @@ use App\Http\Controllers\PersonDocumentController;
 use App\Http\Controllers\PersonMilitaryServiceController;
 use App\Http\Controllers\PersonMilitaryDocumentController;
 use App\Http\Controllers\FamilyInviteController;
+use App\Http\Controllers\FamilyUserController;
+use App\Http\Controllers\FamilyOwnershipController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -39,11 +42,25 @@ Route::get('/avatar', [AvatarController::class, 'show'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    /*
+    |--------------------------------------------------------------------------
+    | 📩 Приглашения в семью
+    |--------------------------------------------------------------------------
+    */
+
+    // экран принятия приглашения
+    Route::get('/family/invite/{token}', [FamilyInviteController::class, 'accept'])
+        ->name('family.invites.accept');
+
+    // подтверждение принятия (ЕДИНСТВЕННЫЙ POST)
+    Route::post('/family/invite/{token}', [FamilyInviteController::class, 'acceptPost'])
+        ->name('family.invites.accept.post');
+
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
     /*
     |--------------------------------------------------------------------------
-    | 👤 Профиль
+    | 👤 Профиль пользователя
     |--------------------------------------------------------------------------
     */
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -52,25 +69,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | 👨‍👩‍👧 Люди (viewer+)
+    | ➕ СОЗДАНИЕ ЧЕЛОВЕКА
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/people/create', [PersonController::class, 'create'])
+        ->name('people.create');
+
+    Route::post('/people', [PersonController::class, 'store'])
+        ->name('people.store');
+
+    /*
+    |--------------------------------------------------------------------------
+    | 👨‍👩‍👧 Просмотр людей
     |--------------------------------------------------------------------------
     */
     Route::middleware('family.role:owner,editor,viewer')->group(function () {
-        Route::resource('people', PersonController::class)->only([
-            'index', 'show'
-        ]);
+
+        Route::get('/people', [PersonController::class, 'index'])
+            ->name('people.index');
+
+        Route::get('/people/{person}', [PersonController::class, 'show'])
+            ->name('people.show');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | ✏️ Редактирование (editor+)
+    | ✏️ Редактирование и управление
     |--------------------------------------------------------------------------
     */
     Route::middleware('family.role:owner,editor')->group(function () {
 
-        Route::resource('people', PersonController::class)->only([
-            'create', 'store', 'edit', 'update'
-        ]);
+        Route::get('/people/{person}/edit', [PersonController::class, 'edit'])
+            ->name('people.edit');
+
+        Route::patch('/people/{person}', [PersonController::class, 'update'])
+            ->name('people.update');
 
         Route::patch('/people/{person}/biography', [PersonController::class, 'updateBiography'])
             ->name('people.biography.update');
@@ -84,11 +117,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/people/{person}/documents', [PersonDocumentController::class, 'store'])
             ->name('people.documents.store');
 
-        /*
-        |--------------------------------------------------------------------------
-        | ⏳ События жизни
-        |--------------------------------------------------------------------------
-        */
         Route::post('/people/{person}/events', [PersonEventController::class, 'store'])
             ->name('events.store');
 
@@ -98,11 +126,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/people/{person}/events/{event}', [PersonEventController::class, 'destroy'])
             ->name('events.destroy');
 
-        /*
-        |--------------------------------------------------------------------------
-        | 🪖 Военная служба
-        |--------------------------------------------------------------------------
-        */
         Route::post('/people/{person}/military', [PersonMilitaryServiceController::class, 'store'])
             ->name('military.store');
 
@@ -118,11 +141,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/military-documents/{document}', [PersonMilitaryDocumentController::class, 'destroy'])
             ->name('military.documents.destroy');
 
-        /*
-        |--------------------------------------------------------------------------
-        | 💍 Пары и дети
-        |--------------------------------------------------------------------------
-        */
         Route::post('/person/{person}/couples', [CoupleController::class, 'store'])
             ->name('couples.store');
 
@@ -131,14 +149,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/couples/{couple}/children/attach', [CoupleChildController::class, 'attach'])
             ->name('couples.children.attach');
+
+        Route::patch('/people/{person}/memorial', [PersonController::class, 'updateMemorial'])
+            ->name('people.memorial.update');
+
+        Route::post('/people/{person}/memorial/photos', [PersonController::class, 'storeMemorialPhoto'])
+            ->name('people.memorial.photos.store');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | 🔥 Только OWNER
+    | 🔥 Только владелец семьи
     |--------------------------------------------------------------------------
     */
     Route::middleware('family.role:owner')->group(function () {
+
+        // ✅ ВОЗВРАЩЁН
+        Route::get('/family/users', [FamilyUserController::class, 'index'])
+            ->name('family.users.index');
+
+        Route::post('/families/{family}/invite', [FamilyInviteController::class, 'store'])
+            ->name('families.invite');
 
         Route::delete('/people/photos/{photo}', [PersonPhotoController::class, 'destroy'])
             ->name('people.photos.destroy');
@@ -148,10 +179,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::delete('/couples/{couple}/children/{child}', [CoupleChildController::class, 'detach'])
             ->name('couples.children.detach');
-
-        Route::post('/families/{family}/invite', [FamilyInviteController::class, 'store'])
-            ->name('families.invite');
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🕯 Свеча памяти — НЕ ТРОГАЕМ
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/people/{person}/memorial/candle', [PersonController::class, 'lightCandle'])
+        ->name('people.memorial.candle');
 
     /*
     |--------------------------------------------------------------------------
@@ -164,6 +200,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/tree-json/{person}', [TreeController::class, 'show'])
         ->name('tree.json');
+});
+
+/*
+   |--------------------------------------------------------------------------
+   | Передача прав собственности на семью (только POST, чтобы не было случайных кликов и т.п.)
+   |--------------------------------------------------------------------------
+   */
+Route::middleware([
+    'auth',
+    'setActiveFamily',
+    'family.role:owner'
+])->group(function () {
+
+    Route::get(
+        '/family/ownership',
+        [FamilyOwnershipController::class, 'index']
+    )->name('family.ownership');
+
+    Route::post(
+        '/family/ownership/transfer',
+        [FamilyOwnershipController::class, 'transfer']
+    )->name('family.ownership.transfer');
+
 });
 
 /*

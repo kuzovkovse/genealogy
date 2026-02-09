@@ -47,6 +47,14 @@ class User extends Authenticatable
         ];
     }
 
+    public function isOwnerOfFamily($family): bool
+    {
+        return $this->families()
+            ->where('family_id', $family->id)
+            ->wherePivot('role', 'owner')
+            ->exists();
+    }
+
     public function families(): BelongsToMany
     {
         return $this->belongsToMany(Family::class, 'family_users')

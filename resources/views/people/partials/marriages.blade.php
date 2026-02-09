@@ -124,6 +124,11 @@
         padding: 0;
     }
 
+    .child-remove-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
     .add-child-box {
         margin-top: 12px;
         padding-top: 12px;
@@ -151,6 +156,7 @@
 
 <div class="family-card">
 
+    {{-- Заголовок --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-0">👨‍👩‍👧 Семья и дети</h3>
@@ -164,6 +170,12 @@
                     onclick="toggleRelationshipForm()">
                 ➕ Добавить партнёра
             </button>
+        @else
+            <button class="btn btn-sm btn-outline-primary"
+                    disabled
+                    title="Добавлять партнёров могут только владелец или редактор">
+                ➕ Добавить партнёра
+            </button>
         @endcan
     </div>
 
@@ -174,14 +186,13 @@
     @if($person->couples->isEmpty())
         <div class="empty-family">
             Пока здесь нет семейных связей.
-            Начните с добавления партнёра — дальше появятся дети и события жизни.
+            Добавление доступно владельцу или редактору семьи.
         </div>
     @else
         <div class="marriages">
             @foreach($person->couples as $couple)
                 @php
                     $relation = $relationMap[$couple->relation_type ?? 'marriage'];
-
                     $spouse = $couple->person_1_id === $person->id
                         ? $couple->person2
                         : $couple->person1;
@@ -210,7 +221,11 @@
                                         'gender' => $spouse->gender
                                     ]) }}">
                             <div>
-                                <strong>{{ $spouse->last_name }} {{ $spouse->first_name }}</strong><br>
+                                <strong>
+                                    {{ $spouse->last_name }}
+                                    {{ $spouse->first_name }}
+                                    {{ $spouse->patronymic }}
+                                </strong><br>
                                 <small class="text-muted">
                                     {{ $spouse->birth_date ? Carbon::parse($spouse->birth_date)->year : '?' }}
                                     —
@@ -227,14 +242,13 @@
                                     $order =
                                         $count < 2 ? null :
                                         ($i === 0 ? 'Старший' : ($i === $count - 1 ? 'Младший' : 'Средний'));
-
                                     $role = $child->gender === 'male' ? 'Сын' : 'Дочь';
                                 @endphp
 
                                 <div class="child-card"
                                      onclick="window.location.href='{{ route('people.show', $child) }}'">
 
-                                    @can('manageChildren', $couple)
+                                    @can('delete', $couple)
                                         <form method="POST"
                                               action="{{ route('couples.children.detach', [$couple, $child]) }}"
                                               onsubmit="return confirm('Убрать ребёнка из этой семьи?')"
@@ -264,15 +278,18 @@
                     @else
                         <div class="text-muted small mt-2">
                             У этой семьи пока не указаны дети
-                            @can('manageChildren', $couple)
-                                — добавьте первого
-                            @endcan
                         </div>
                     @endif
 
                     @can('manageChildren', $couple)
                         <button class="btn btn-sm btn-link text-muted p-0 mt-2"
                                 onclick="toggleAddChild({{ $couple->id }})">
+                            ➕ Добавить ребёнка в эту семью
+                        </button>
+                    @else
+                        <button class="btn btn-sm btn-link text-muted p-0 mt-2"
+                                disabled
+                                title="Добавление детей доступно владельцу или редактору">
                             ➕ Добавить ребёнка в эту семью
                         </button>
                     @endcan
@@ -298,7 +315,9 @@
                                         <option value="">Выбрать существующего ребёнка</option>
                                         @foreach($existingChildrenCandidates as $candidate)
                                             <option value="{{ $candidate->id }}">
-                                                {{ $candidate->last_name }} {{ $candidate->first_name }}
+                                                {{ $candidate->last_name }}
+                                                {{ $candidate->first_name }}
+                                                {{ $candidate->patronymic }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -315,10 +334,23 @@
 </div>
 
 <script>
+    function toggleRelationshipForm() {
+        const el = document.getElementById('relationship-form-container');
+        if (!el) return;
+
+        el.classList.toggle('d-none');
+
+        if (!el.classList.contains('d-none')) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
     function toggleAddChild(id) {
         const el = document.getElementById('add-child-box-' + id);
         if (!el) return;
+
         el.classList.toggle('d-none');
+
         if (!el.classList.contains('d-none')) {
             el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
