@@ -14,6 +14,23 @@
 {{-- NAV --}}
 @include('layouts.navigation')
 
+@if(session('success'))
+    <div class="container mt-3">
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="container mt-3">
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    </div>
+@endif
+
+
 {{-- CONTENT --}}
 <main class="py-6" id="app-main">
     @hasSection('fullscreen')
@@ -26,6 +43,8 @@
         </div>
     @endif
 </main>
+
+
 
 {{-- Bootstrap JS --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\CheckFamilyRole;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -11,10 +10,16 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function ($middleware) {
+    ->withMiddleware(function (Middleware $middleware) {
+
         $middleware->alias([
-            'family.role' => \App\Http\Middleware\CheckFamilyRole::class,
+            // 🔑 Контекст активной семьи
+            'setActiveFamily' => \App\Http\Middleware\SetActiveFamily::class,
+
+            // 🔐 Проверка роли в семье
+            'family.role'     => \App\Http\Middleware\CheckFamilyRole::class,
         ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

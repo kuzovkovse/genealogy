@@ -2,31 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Person;
-use App\Services\FamilyContext;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Routing\Controller as BaseController;
 
-abstract class Controller
+abstract class Controller extends BaseController
 {
-    /**
-     * 🔐 Проверка доступа к человеку через активную семью
-     */
-    protected function authorizePerson(Person $person): void
-    {
-        // 1️⃣ Если контекста семьи нет — пробуем восстановить из человека
-        $family = FamilyContext::get();
-
-        if (!$family) {
-            if (!$person->family_id) {
-                abort(403, 'У человека не указана семья');
-            }
-
-            FamilyContext::setId($person->family_id);
-            $family = FamilyContext::get();
-        }
-
-        // 2️⃣ Финальная проверка
-        if (!$family || $person->family_id !== $family->id) {
-            abort(403);
-        }
-    }
+    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 }
