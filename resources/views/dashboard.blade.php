@@ -5,13 +5,14 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    {{ __("You're logged in!") }}
-                </div>
-            </div>
+    <div class="py-8 max-w-5xl mx-auto px-6">
+
+        {{-- 🧠 уведомления теперь ТОЛЬКО в navbar --}}
+        {{-- <x-family-notifications /> ❌ УДАЛЕНО --}}
+
+        <div class="bg-white shadow-sm rounded-lg p-6">
+            Вы вошли в систему
         </div>
+
     </div>
 </x-app-layout>

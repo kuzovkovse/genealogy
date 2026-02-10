@@ -14,10 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             // 🔑 Контекст активной семьи
-            'setActiveFamily' => \App\Http\Middleware\SetActiveFamily::class,
+            'set.active.family' => \App\Http\Middleware\SetActiveFamily::class,
 
             // 🔐 Проверка роли в семье
-            'family.role'     => \App\Http\Middleware\CheckFamilyRole::class,
+            'family.role'       => \App\Http\Middleware\CheckFamilyRole::class,
         ]);
 
     })

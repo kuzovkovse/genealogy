@@ -4,7 +4,7 @@
 
 @section('content')
 
-    {{-- Заголовок --}}
+    {{-- ================= HEADER ================= --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Люди</h1>
 
@@ -13,6 +13,45 @@
                 ➕ Добавить человека
             </a>
         @endcan
+    </div>
+
+    {{-- ================= SEARCH & FILTERS ================= --}}
+    <div class="mb-4">
+
+        <input
+            type="text"
+            id="peopleSearch"
+            class="form-control mb-2"
+            placeholder="🔍 Поиск по имени, фамилии или отчеству…">
+
+        <div class="d-flex flex-wrap gap-3 align-items-center small text-muted">
+
+            <label class="d-flex align-items-center gap-1">
+                <input type="checkbox" class="filter-gender" value="male">
+                👨 Мужчины
+            </label>
+
+            <label class="d-flex align-items-center gap-1">
+                <input type="checkbox" class="filter-gender" value="female">
+                👩 Женщины
+            </label>
+
+            <label class="d-flex align-items-center gap-1">
+                <input type="checkbox" id="filter-war">
+                🎖 Участники ВОВ
+            </label>
+
+            <label class="d-flex align-items-center gap-1">
+                <input type="checkbox" id="filter-alive">
+                ❤️ Живые
+            </label>
+
+            <label class="d-flex align-items-center gap-1">
+                <input type="checkbox" id="filter-dead">
+                🕯 Умершие
+            </label>
+
+        </div>
     </div>
 
     <style>
@@ -46,15 +85,8 @@
             transform: translateY(-3px);
         }
 
-        /* статус */
-        .person-card.alive {
-            border-color: #86efac;
-        }
-
-        .person-card.dead {
-            border-color: #d1d5db;
-            filter: grayscale(35%) contrast(0.95);
-        }
+        .person-card.alive { border-color: #86efac; }
+        .person-card.dead  { border-color: #d1d5db; filter: grayscale(35%) contrast(.95); }
 
         .person-photo {
             width: 100%;
@@ -82,14 +114,12 @@
             padding-bottom: 10px;
         }
 
-        /* overlay */
         .person-link {
             position: absolute;
             inset: 0;
             z-index: 1;
         }
 
-        /* кнопка дерева */
         .tree-btn {
             position: absolute;
             top: 10px;
@@ -105,7 +135,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,.15);
         }
 
-        /* бейджи */
         .badges {
             position: absolute;
             top: 10px;
@@ -120,37 +149,31 @@
             font-size: 11px;
             padding: 3px 7px;
             border-radius: 999px;
-            font-weight: 500;
             background: rgba(255,255,255,.9);
             box-shadow: 0 2px 6px rgba(0,0,0,.12);
             white-space: nowrap;
         }
 
-        .badge-war { color: #92400e; }
+        .badge-war   { color: #92400e; }
         .badge-alive { color: #065f46; }
-        .badge-dead { color: #7f1d1d; }
+        .badge-dead  { color: #7f1d1d; }
     </style>
 
-    {{-- Поколения --}}
+    {{-- ================= GENERATIONS ================= --}}
     @forelse($generations as $level => $people)
-
         <div class="generation-block">
 
             <div class="generation-title">
                 {{ roman($level) }} поколение
                 <span class="text-muted" style="font-size:13px;">
-                    ({{ $people->count() }})
-                </span>
+            ({{ $people->count() }})
+        </span>
             </div>
 
             <div class="people-grid">
                 @foreach($people as $person)
 
                     @php
-                        $photo = $person->photo
-                            ? asset('storage/'.$person->photo)
-                            : asset('storage/people/placepeople.png');
-
                         $fullName = trim(
                             ($person->last_name ?? '').' '.
                             ($person->first_name ?? '').' '.
@@ -160,18 +183,27 @@
                         $birthYear = $person->birth_date ? \Carbon\Carbon::parse($person->birth_date)->year : null;
                         $deathYear = $person->death_date ? \Carbon\Carbon::parse($person->death_date)->year : null;
 
-                        $lifeLine = $birthYear
-                            ? ($deathYear ? "$birthYear — $deathYear" : "род. $birthYear")
-                            : null;
+                        if ($birthYear) {
+                            $lifeLine = $deathYear
+                                ? "$birthYear — $deathYear"
+                                : "род. $birthYear";
+                        } else {
+                            $lifeLine = null;
+                        }
                     @endphp
 
-                    <div class="person-card {{ $person->death_date ? 'dead' : 'alive' }}">
+                    <div class="person-card {{ $person->death_date ? 'dead' : 'alive' }}"
+                         data-name="{{ mb_strtolower($fullName) }}"
+                         data-gender="{{ $person->gender }}"
+                         data-war="{{ $person->is_war_participant ? '1' : '0' }}"
+                         data-life="{{ $person->death_date ? 'dead' : 'alive' }}">
 
                         <a href="{{ route('people.show', $person) }}" class="person-link"></a>
 
                         <button class="tree-btn"
-                                onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'"
-                                title="Показать в древе">🌳</button>
+                                onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'">
+                            🌳
+                        </button>
 
                         <div class="badges">
                             @if($person->is_war_participant)
@@ -186,7 +218,7 @@
                         </div>
 
                         <div class="person-photo">
-                            <img src="{{ $photo }}" alt="{{ $fullName }}">
+                            <img src="{{ $person->photo ? asset('storage/'.$person->photo) : asset('storage/people/placepeople.png') }}">
                         </div>
 
                         <div class="person-name">{{ $fullName }}</div>
@@ -194,16 +226,100 @@
                         @if($lifeLine)
                             <div class="person-life">{{ $lifeLine }}</div>
                         @endif
-
                     </div>
 
                 @endforeach
             </div>
-
         </div>
-
     @empty
         <p class="text-muted">Пока нет ни одного человека</p>
     @endforelse
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const STORAGE_KEY = 'people_filters_v1';
+
+            const search = document.getElementById('peopleSearch');
+            const genders = document.querySelectorAll('.filter-gender');
+            const war = document.getElementById('filter-war');
+            const alive = document.getElementById('filter-alive');
+            const dead = document.getElementById('filter-dead');
+
+            /* ================= SAVE ================= */
+            function saveState() {
+                const state = {
+                    search: search.value,
+                    genders: [...genders].filter(cb => cb.checked).map(cb => cb.value),
+                    war: war.checked,
+                    alive: alive.checked,
+                    dead: dead.checked,
+                };
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+
+            /* ================= RESTORE ================= */
+            function restoreState() {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+
+                try {
+                    const state = JSON.parse(raw);
+
+                    if (typeof state.search === 'string') {
+                        search.value = state.search;
+                    }
+
+                    if (Array.isArray(state.genders)) {
+                        genders.forEach(cb => {
+                            cb.checked = state.genders.includes(cb.value);
+                        });
+                    }
+
+                    war.checked = !!state.war;
+                    alive.checked = !!state.alive;
+                    dead.checked = !!state.dead;
+
+                } catch (e) {
+                    console.warn('Failed to restore filters', e);
+                }
+            }
+
+            /* ================= APPLY ================= */
+            function applyFilters() {
+                const q = search.value.toLowerCase().trim();
+
+                const selectedGenders = [...genders]
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+
+                document.querySelectorAll('.person-card').forEach(card => {
+                    let visible = true;
+
+                    if (q && !card.dataset.name.includes(q)) visible = false;
+                    if (selectedGenders.length && !selectedGenders.includes(card.dataset.gender)) visible = false;
+                    if (war.checked && card.dataset.war !== '1') visible = false;
+                    if (alive.checked && card.dataset.life !== 'alive') visible = false;
+                    if (dead.checked && card.dataset.life !== 'dead') visible = false;
+
+                    card.style.display = visible ? '' : 'none';
+                });
+            }
+
+            /* ================= EVENTS ================= */
+            function onChange() {
+                saveState();
+                applyFilters();
+            }
+
+            [search, war, alive, dead, ...genders]
+                .forEach(el => el.addEventListener('input', onChange));
+
+            /* ================= INIT ================= */
+            restoreState();
+            applyFilters();
+        });
+    </script>
 
 @endsection
