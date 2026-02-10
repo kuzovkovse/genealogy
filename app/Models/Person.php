@@ -148,7 +148,11 @@ class Person extends Model
     /* =========================================================
         * ФИО
         * ========================================================= */
-    public function fullName(): string
+
+    /**
+     * Аксессор ($person->full_name)
+     */
+    public function getFullNameAttribute(): string
     {
         return trim(collect([
             $this->last_name,
@@ -156,6 +160,16 @@ class Person extends Model
             $this->patronymic,
         ])->filter()->implode(' '));
     }
+
+    /**
+     * Метод для шаблонов ($person->fullName())
+     * 🔥 НЕ УДАЛЯТЬ — используется в blade
+     */
+    public function fullName(): string
+    {
+        return $this->full_name;
+    }
+
 
 
     /* =========================================================

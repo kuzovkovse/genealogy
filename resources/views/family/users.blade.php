@@ -6,7 +6,14 @@
 
     <div class="container" style="max-width: 900px">
 
-        {{-- Заголовок + действие --}}
+        {{-- ===== TOAST ===== --}}
+        @if(session('role_updated'))
+            <div class="toast-lite">
+                ✅ Роль изменена
+            </div>
+        @endif
+
+        {{-- ===== HEADER ===== --}}
         <h1 class="mb-4 d-flex justify-content-between align-items-center">
             👨‍👩‍👧 Участники семьи
 
@@ -31,7 +38,7 @@
                     <thead class="table-light">
                     <tr>
                         <th>Пользователь</th>
-                        <th style="width: 180px">Роль</th>
+                        <th style="width: 200px">Роль</th>
                         <th style="width: 200px"></th>
                     </tr>
                     </thead>
@@ -46,7 +53,8 @@
                     @endphp
 
                     @foreach($family->users as $user)
-                        <tr>
+                        <tr class="user-row">
+                            {{-- Пользователь --}}
                             <td>
                                 <div class="fw-semibold">
                                     {{ $user->name ?? $user->email }}
@@ -56,35 +64,64 @@
                                 </div>
                             </td>
 
+                            {{-- Роль --}}
                             <td>
-                            <span class="badge bg-secondary">
+                            <span class="badge rounded-pill text-bg-light border">
                                 {{ $roleLabels[$user->pivot->role] ?? $user->pivot->role }}
                             </span>
                             </td>
 
+                            {{-- Действия --}}
                             <td class="text-end">
                                 @if(
                                     auth()->user()->isOwnerOfFamily($family)
                                     && auth()->id() !== $user->id
                                 )
-                                    <div class="d-flex gap-2 justify-content-end">
-                                        {{-- Заглушки под будущий функционал --}}
-                                        <button
-                                            class="btn btn-sm btn-outline-secondary"
-                                            disabled
-                                            title="Скоро будет доступно"
-                                        >
-                                            Сменить роль
-                                        </button>
+                                    <form
+                                        method="POST"
+                                        action="{{ route('family.users.role.update', $user) }}"
+                                        class="d-flex justify-content-end align-items-center gap-2 user-actions role-form"
+                                        data-role-form
+                                    >
+                                        @csrf
+                                        @method('PATCH')
 
-                                        <button
-                                            class="btn btn-sm btn-outline-danger"
-                                            disabled
-                                            title="Удаление владельца запрещено"
+                                        <select
+                                            name="role"
+                                            class="form-select form-select-sm role-select"
+                                            style="width: 140px"
+                                            data-original="{{ $user->pivot->role }}"
                                         >
-                                            Удалить
-                                        </button>
-                                    </div>
+                                            <option value="viewer"
+                                                {{ $user->pivot->role === 'viewer' ? 'selected' : '' }}>
+                                                👁 Наблюдатель
+                                            </option>
+                                            <option value="editor"
+                                                {{ $user->pivot->role === 'editor' ? 'selected' : '' }}>
+                                                ✏️ Редактор
+                                            </option>
+                                        </select>
+
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button
+                                                type="submit"
+                                                class="btn btn-outline-primary save-btn"
+                                                disabled
+                                                title="Сохранить роль"
+                                            >
+                                                💾
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-danger"
+                                                disabled
+                                                title="Удаление владельца запрещено"
+                                            >
+                                                🗑
+                                            </button>
+                                        </div>
+                                    </form>
                                 @endif
                             </td>
                         </tr>
@@ -105,7 +142,7 @@
                     <form
                         method="POST"
                         action="{{ route('families.invite', $family) }}"
-                        class="row g-3"
+                        class="row g-3 align-items-end"
                     >
                         @csrf
 
@@ -128,8 +165,10 @@
                             </select>
                         </div>
 
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-primary w-100">
+                        <div class="col-md-2">
+                            <button
+                                class="btn btn-outline-primary btn-sm px-3 d-inline-flex align-items-center gap-1"
+                            >
                                 ➕ Пригласить
                             </button>
                         </div>
@@ -152,5 +191,58 @@
         @endif
 
     </div>
+
+    {{-- ===== CSS ===== --}}
+    <style>
+        tr.user-row .user-actions {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease;
+        }
+
+        tr.user-row:hover .user-actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .toast-lite {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #111827;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            z-index: 9999;
+            animation: fadeOut 3s forwards;
+        }
+
+        @keyframes fadeOut {
+            0%   { opacity: 0; transform: translateY(-5px); }
+            10%  { opacity: 1; transform: translateY(0); }
+            80%  { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-5px); }
+        }
+    </style>
+
+    {{-- ===== JS ===== --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.role-form').forEach(form => {
+                const select = form.querySelector('.role-select');
+                const saveBtn = form.querySelector('.save-btn');
+                const original = select.dataset.original;
+
+                function sync() {
+                    saveBtn.disabled = (select.value === original);
+                }
+
+                select.addEventListener('change', sync);
+                sync();
+            });
+        });
+    </script>
 
 @endsection

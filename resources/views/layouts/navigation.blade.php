@@ -1,17 +1,16 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
     <div class="container">
 
-        {{-- ЛОГО / БРЕНД --}}
+        {{-- ЛОГО --}}
         <a class="navbar-brand fw-bold" href="{{ route('people.index') }}">
             ПомниКорни
         </a>
 
-        {{-- TOGGLER (mobile) --}}
+        {{-- TOGGLER --}}
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        {{-- NAV --}}
         <div class="collapse navbar-collapse" id="mainNavbar">
 
             {{-- LEFT --}}
@@ -31,9 +30,16 @@
                 </li>
             </ul>
 
-            {{-- RIGHT / USER --}}
+            {{-- RIGHT --}}
             @auth
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+
+                    {{-- 🔔 УВЕДОМЛЕНИЯ --}}
+                    <li class="nav-item">
+                        <x-family-notifications-bell />
+                    </li>
+
+                    {{-- 👤 USER --}}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle"
                            href="#"
@@ -61,6 +67,7 @@
                             </li>
                         </ul>
                     </li>
+
                 </ul>
             @endauth
 

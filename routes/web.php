@@ -18,6 +18,8 @@ use App\Http\Controllers\PersonMilitaryDocumentController;
 use App\Http\Controllers\FamilyInviteController;
 use App\Http\Controllers\FamilyUserController;
 use App\Http\Controllers\FamilyOwnershipController;
+use App\Http\Controllers\FamilyHistoryController;
+use App\Observers\PersonObserver;
 
 
 /*
@@ -56,7 +58,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/family/invite/{token}', [FamilyInviteController::class, 'acceptPost'])
         ->name('family.invites.accept.post');
 
-    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->middleware([
+        'auth',
+        'set.active.family', // 🔑 КЛЮЧЕВО
+    ])->name('dashboard');
 
     /*
     |--------------------------------------------------------------------------
@@ -168,6 +175,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/family/users', [FamilyUserController::class, 'index'])
             ->name('family.users.index');
 
+        Route::patch('/family/users/{user}/role', [FamilyUserController::class, 'updateRole'])->name('family.users.role.update');
+
         Route::post('/families/{family}/invite', [FamilyInviteController::class, 'store'])
             ->name('families.invite');
 
@@ -179,7 +188,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::delete('/couples/{couple}/children/{child}', [CoupleChildController::class, 'detach'])
             ->name('couples.children.detach');
-    });
+
+
+        });
+
 
     /*
     |--------------------------------------------------------------------------
@@ -209,7 +221,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
    */
 Route::middleware([
     'auth',
-    'setActiveFamily',
+    'set.active.family',
     'family.role:owner'
 ])->group(function () {
 
@@ -225,6 +237,17 @@ Route::middleware([
 
 });
 
+/*
+|--------------------------------------------------------------------------
+| Логирование истории
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'set.active.family'])->group(function () {
+
+    Route::get('/family/history', [FamilyHistoryController::class, 'index'])
+        ->name('family.history');
+
+});
 /*
 |--------------------------------------------------------------------------
 | 🌱 Онбординг

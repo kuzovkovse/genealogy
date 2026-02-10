@@ -14,6 +14,7 @@
 {{-- NAV --}}
 @include('layouts.navigation')
 
+{{-- flash --}}
 @if(session('success'))
     <div class="container mt-3">
         <div class="alert alert-success">
@@ -30,21 +31,16 @@
     </div>
 @endif
 
-
 {{-- CONTENT --}}
-<main class="py-6" id="app-main">
+<main class="py-4" id="app-main">
     @hasSection('fullscreen')
-        {{-- fullscreen-страницы (дерево) --}}
         @yield('content')
     @else
-        {{-- обычные страницы --}}
         <div class="container">
             @yield('content')
         </div>
     @endif
 </main>
-
-
 
 {{-- Bootstrap JS --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
