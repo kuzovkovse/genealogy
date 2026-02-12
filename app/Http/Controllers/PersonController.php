@@ -353,6 +353,25 @@ class PersonController extends Controller
     }
 
     /* ===============================
+         * МЕСТО ЗАХОРОНЕНИЯ
+         * =============================== */
+    public function updateMemorial(Request $request, Person $person)
+    {
+        $data = $request->validate([
+            'burial_place'        => ['nullable', 'string', 'max:255'],
+            'burial_city'         => ['nullable', 'string', 'max:255'],
+            'burial_cemetery'     => ['nullable', 'string', 'max:255'],
+            'burial_description'  => ['nullable', 'string'],
+            'burial_lat'          => ['nullable', 'numeric'],
+            'burial_lng'          => ['nullable', 'numeric'],
+        ]);
+
+        $person->update($data);
+
+        return back()->with('success', 'Место памяти обновлено');
+    }
+
+    /* ===============================
      * 🕯 Свеча памяти
      * =============================== */
     public function lightCandle(Request $request, Person $person)
