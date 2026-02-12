@@ -371,6 +371,33 @@ class PersonController extends Controller
         return back()->with('success', 'Место памяти обновлено');
     }
 
+
+    /* ===============================
+             * ФОТО МЕСТА ЗАХОРОНЕНИЯ
+             * =============================== */
+    public function storeMemorialPhoto(Request $request, \App\Models\Person $person)
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'max:5120'], // 5MB
+            'title' => ['nullable', 'string', 'max:255'],
+            'year'  => ['nullable', 'integer'],
+            'description' => ['nullable', 'string'],
+        ]);
+
+        // сохраняем файл
+        $path = $request->file('photo')->store('memorials', 'public');
+
+        // если у тебя отдельная таблица memorial_photos
+        $person->memorialPhotos()->create([
+            'image_path' => $path,
+            'title' => $request->title,
+            'year' => $request->year,
+            'description' => $request->description,
+        ]);
+
+        return back()->with('success', 'Фото места памяти добавлено');
+    }
+
     /* ===============================
      * 🕯 Свеча памяти
      * =============================== */
