@@ -353,6 +353,27 @@ class PersonController extends Controller
     }
 
     /* ===============================
+         * БИОГРАФИЯ
+         * =============================== */
+    public function updateBiography(Request $request, Person $person)
+    {
+        $this->authorize('update', $person);
+
+        $data = $request->validate([
+            'biography' => ['nullable', 'string'],
+        ]);
+
+        $person->update([
+            'biography' => $data['biography'],
+        ]);
+
+        return redirect()
+            ->route('people.show', $person)
+            ->with('success', 'История жизни обновлена');
+    }
+
+
+    /* ===============================
          * МЕСТО ЗАХОРОНЕНИЯ
          * =============================== */
     public function updateMemorial(Request $request, Person $person)
