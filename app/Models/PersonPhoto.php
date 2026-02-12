@@ -11,7 +11,7 @@ class PersonPhoto extends Model
         'image_path',
         'title',
         'description',
-        'year',
+        'taken_year',
     ];
 
     public function person()

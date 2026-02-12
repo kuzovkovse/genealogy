@@ -38,10 +38,6 @@
                 Здесь могут появиться фотографии из разных периодов жизни —
                 семейные снимки, важные события, редкие кадры.
             </div>
-
-            @include('people.partials.next-step', [
-                'step' => $nextSteps['gallery'] ?? null
-            ])
         @else
             <div id="life-gallery" class="row g-3">
                 @foreach($photos as $photo)
@@ -69,27 +65,37 @@
                             <a href="{{ asset('storage/'.$photo->image_path) }}"
                                class="glightbox"
                                data-gallery="life"
-                               data-title="{{ $photo->title }}"
-                               data-description="{{ $photo->description }}">
+                               data-title="{{ $photo->title ?? '' }}"
+                               data-description="{{ $photo->description ?? '' }}">
 
-                                <div class="card h-100">
+                                <div class="card h-100 shadow-sm">
+
                                     <div class="ratio ratio-1x1">
                                         <img src="{{ asset('storage/'.$photo->image_path) }}"
-                                             class="card-img-top object-fit-cover">
+                                             class="card-img-top object-fit-cover"
+                                             alt="{{ $photo->title }}">
                                     </div>
 
-                                    <div class="card-body p-2">
-                                        @if($photo->taken_year)
-                                            <div class="text-muted small">
-                                                {{ $photo->taken_year }}
+                                    <div class="card-body p-2 text-center">
+
+                                        {{-- 📅 ГОД --}}
+                                        @if(!empty($photo->taken_year))
+                                            <div class="mb-1">
+                                                <span class="badge bg-light text-dark border">
+                                                    {{ $photo->taken_year }} г.
+                                                </span>
                                             </div>
                                         @endif
-                                        @if($photo->title)
+
+                                        {{-- 📝 ЗАГОЛОВОК --}}
+                                        @if(!empty($photo->title))
                                             <div class="fw-semibold small">
                                                 {{ $photo->title }}
                                             </div>
                                         @endif
+
                                     </div>
+
                                 </div>
                             </a>
 
@@ -100,7 +106,7 @@
         @endif
 
         {{-- =======================
-         | ДОБАВЛЕНИЕ ФОТО (СКРЫТО)
+         | ДОБАВЛЕНИЕ ФОТО
          ======================= --}}
         <div id="add-life-photo"
              class="border rounded p-3 mt-4 bg-light"
