@@ -7,7 +7,12 @@
     {{-- Bootstrap --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    @stack('styles')
+    {{-- GLightbox --}}
+    <link href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" rel="stylesheet">
+   <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+
+
+   @stack('styles')
 </head>
 <body class="bg-light">
 
@@ -63,5 +68,23 @@
         DEV
     </div>
 @endif
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const lightbox = GLightbox({
+            selector: '.glightbox',
+            touchNavigation: true,
+            loop: true,
+            zoomable: true,
+            draggable: true,
+            preload: true,
+            autoplayVideos: false,
+            moreText: 'Подробнее',
+            slideEffect: 'zoom',
+            openEffect: 'zoom',
+            closeEffect: 'fade',
+        });
+    });
+</script>
 </body>
 </html>

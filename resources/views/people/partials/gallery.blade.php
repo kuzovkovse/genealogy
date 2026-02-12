@@ -66,14 +66,21 @@
                                class="glightbox"
                                data-gallery="life"
                                data-title="{{ $photo->title ?? '' }}"
-                               data-description="{{ $photo->description ?? '' }}">
+                               data-description="
+        @if($photo->taken_year)
+            <strong>{{ $photo->taken_year }} г.</strong><br>
+        @endif
+        {{ $photo->description ?? '' }}
+   ">
 
                                 <div class="card h-100 shadow-sm">
 
                                     <div class="ratio ratio-1x1">
                                         <img src="{{ asset('storage/'.$photo->image_path) }}"
                                              class="card-img-top object-fit-cover"
-                                             alt="{{ $photo->title }}">
+                                             alt="{{ $photo->title }}"
+                                             loading="lazy">
+
                                     </div>
 
                                     <div class="card-body p-2 text-center">
@@ -192,6 +199,18 @@
         padding: 2px 6px;
         line-height: 1;
         border-radius: 999px;
+    }
+
+    .card {
+        overflow: hidden; /* 🔒 обрезает выход за границы */
+    }
+
+    .card img {
+        transition: transform .3s ease;
+    }
+
+    .card:hover img {
+        transform: scale(1.05);
     }
 </style>
 
