@@ -53,12 +53,22 @@ class PersonMilitaryServiceController extends Controller
         return back()->with('success', 'Запись военной службы удалена');
     }
 
+
+    protected function authorizePerson(\App\Models\Person $person): void
+    {
+        $family = app('activeFamily');
+
+        if (!$family || $person->family_id !== $family->id) {
+            abort(403, 'Нет доступа к человеку');
+        }
+    }
+
     /* ===============================
      * ✅ ВАЛИДАЦИЯ
      * =============================== */
     protected function validateData(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'war_type'     => 'required|string|max:255',
             'rank'         => 'nullable|string|max:255',
             'unit'         => 'nullable|string|max:255',
@@ -70,5 +80,14 @@ class PersonMilitaryServiceController extends Controller
             'burial_place' => 'nullable|string|max:255',
             'notes'        => 'nullable|string',
         ]);
+
+        // 🔥 ВОТ ЭТО ДОБАВЛЯЕМ
+        if (!empty($data['service_end'])) {
+            $data['service_end'] = $data['service_end'] . '-01-01';
+        }
+
+        return $data;
     }
+
+
 }

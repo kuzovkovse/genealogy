@@ -66,4 +66,13 @@ class PersonMilitaryDocumentController extends Controller
 
         return back()->with('success', 'Документ удалён');
     }
+    protected function authorizePerson(\App\Models\Person $person): void
+    {
+        $family = app()->bound('activeFamily') ? app('activeFamily') : null;
+
+        if (!$family || $person->family_id !== $family->id) {
+            abort(403, 'Нет доступа к человеку');
+        }
+    }
+
 }

@@ -90,7 +90,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | 👨‍👩‍👧 Просмотр людей
     |--------------------------------------------------------------------------
     */
-    Route::middleware('family.role:owner,editor,viewer')->group(function () {
+    Route::middleware(['set.active.family','family.role:owner,editor,viewer'])->group(function () {
 
         Route::get('/people', [PersonController::class, 'index'])
             ->name('people.index');
@@ -104,7 +104,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | ✏️ Редактирование и управление
     |--------------------------------------------------------------------------
     */
-    Route::middleware('family.role:owner,editor')->group(function () {
+    Route::middleware(['set.active.family', 'family.role:owner,editor'])->group(function () {
+
 
         Route::get('/people/{person}/edit', [PersonController::class, 'edit'])
             ->name('people.edit');
