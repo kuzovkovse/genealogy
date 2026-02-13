@@ -226,31 +226,142 @@
             border: 2px solid #f59e0b !important;
             box-shadow: 0 0 0 3px rgba(245,158,11,.25);
         }
+
+        /* =========================
+   🧬 ВЕРТИКАЛЬНАЯ ЛИНИЯ РОДА
+========================= */
+
+        .generations-wrapper {
+            position: relative;
+            padding-left: 40px;
+            z-index: 1;
+        }
+
+        .generations-wrapper::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(
+                to bottom,
+                rgba(139,94,60,0.2),
+                rgba(139,94,60,0.4),
+                rgba(139,94,60,0.2)
+            );
+        }
+
+        /* =========================
+           📚 ПОКОЛЕНИЯ
+        ========================= */
+
+        .generation-block {
+            position: relative;
+            margin-bottom: 60px;
+            padding-left: 20px;
+        }
+
+        .generation-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+
+        /* эффект глубины */
+        .generation-block[data-level="1"] { margin-top: 0; }
+        .generation-block[data-level="2"] { margin-left: 10px; }
+        .generation-block[data-level="3"] { margin-left: 20px; }
+        .generation-block[data-level="4"] { margin-left: 30px; }
+        .generation-block[data-level="5"] { margin-left: 40px; }
+
+        /* мягкий фон для старших поколений */
+        .generation-block[data-level="1"] {
+            background: linear-gradient(to right, #faf7f2, transparent);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        /* I поколение крупнее */
+        .generation-block[data-level="1"] .person-card {
+            transform: scale(1.05);
+        }
+
+        /* скрываемый контент */
+        .generation-content.collapsed {
+            display: none;
+        }
+
+        /* якорная навигация */
+        .generation-nav {
+            position: sticky;
+            top: 70px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.08);
+
+            z-index: 1000;
+        }
+
     </style>
 
     {{-- ================= GENERATIONS MODE ================= --}}
     @if($mode !== 'list')
 
-        @forelse($generations as $level => $people)
-            <div class="generation-block">
+        @php $totalGenerations = count($generations); @endphp
 
-                <div class="generation-title">
+        <div class="mb-3 text-muted">
+            🧬 Поколений: {{ $totalGenerations }}
+        </div>
+
+        <div class="generation-nav">
+            @foreach($generations as $level => $people)
+                <button class="btn btn-sm btn-outline-secondary"
+                        onclick="scrollToGeneration({{ $level }})">
+                    {{ roman($level) }}
+                </button>
+            @endforeach
+        </div>
+
+        <div class="generations-wrapper">
+
+        @forelse($generations as $level => $people)
+                <div class="generation-block"
+                     id="generation-{{ $level }}"
+                     data-level="{{ $level }}">
+
+                    <div class="generation-title"
+                         onclick="toggleGeneration({{ $level }})">
                     {{ roman($level) }} поколение
                     <span class="text-muted" style="font-size:13px;">
                         ({{ $people->count() }})
                     </span>
                 </div>
-
+                    <div class="generation-content"
+                         id="generation-content-{{ $level }}">
                 <div class="people-grid">
                     @foreach($people as $person)
                         @include('people.partials.person-card')
                     @endforeach
                 </div>
+                    </div>
             </div>
         @empty
             <p class="text-muted">Пока нет ни одного человека</p>
         @endforelse
-
+        </div> {{-- generations-wrapper --}}
     @endif
 
 
@@ -332,6 +443,22 @@
             restoreState();
             applyFilters();
         });
+        function toggleGeneration(level) {
+            const content = document.getElementById('generation-content-' + level);
+            if (!content) return;
+            content.classList.toggle('collapsed');
+        }
+
+        function scrollToGeneration(level) {
+            const el = document.getElementById('generation-' + level);
+            if (!el) return;
+
+            el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
     </script>
 
 @endsection
