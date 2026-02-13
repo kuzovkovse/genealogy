@@ -163,6 +163,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/people/{person}/memorial/photos', [PersonController::class, 'storeMemorialPhoto'])
             ->name('people.memorial.photos.store');
+
+        Route::get('/couples/{couple}/edit', [CoupleController::class, 'edit'])
+            ->name('couples.edit');
+
+        Route::put('/couples/{couple}', [CoupleController::class, 'update'])
+            ->name('couples.update');
     });
 
     /*

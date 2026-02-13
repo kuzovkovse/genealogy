@@ -77,4 +77,44 @@ class CoupleController extends Controller
             ->route('people.show', $person)
             ->with('success', 'Связь успешно добавлена');
     }
+
+    public function edit(Couple $couple)
+    {
+        $this->authorize('update', $couple);
+
+        return view('couples.edit', compact('couple'));
+    }
+
+    public function update(Request $request, Couple $couple)
+    {
+        $validated = $request->validate([
+            'relation_type' => 'required|string',
+            'started_at'    => 'nullable|string',
+            'ended_at'      => 'nullable|string',
+        ]);
+
+        $startedAt = null;
+        $endedAt   = null;
+
+        if (!empty($validated['started_at'])) {
+            $startedAt = \Carbon\Carbon::createFromFormat('d.m.Y', $validated['started_at'])
+                ->format('Y-m-d');
+        }
+
+        if (!empty($validated['ended_at'])) {
+            $endedAt = \Carbon\Carbon::createFromFormat('d.m.Y', $validated['ended_at'])
+                ->format('Y-m-d');
+        }
+
+        $couple->update([
+            'relation_type' => $validated['relation_type'],
+            'married_at'    => $startedAt,
+            'divorced_at'   => $endedAt,
+        ]);
+
+        return redirect()
+            ->route('people.show', $couple->person_1_id)
+            ->with('success', 'Связь обновлена');
+    }
+
 }

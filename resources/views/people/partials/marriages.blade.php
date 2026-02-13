@@ -51,19 +51,15 @@
         margin-left: 8px;
     }
 
-    .badge-active {
-        background: #dcfce7;
-        color: #166534;
-    }
+    .badge-active  { background: #dcfce7; color: #166534; }
+    .badge-divorce { background: #fee2e2; color: #991b1b; }
+    .badge-death   { background: #e5e7eb; color: #374151; }
 
-    .badge-divorce {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .badge-death {
-        background: #e5e7eb;
-        color: #374151;
+    .marriage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 10px;
     }
 
     .marriage-title {
@@ -158,6 +154,7 @@
 
 <div class="family-card">
 
+    {{-- Заголовок --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-0">👨‍👩‍👧 Семья и дети</h3>
@@ -196,8 +193,8 @@
                         ->sortBy(fn($c) => $c->birth_date ?? '9999-12-31')
                         ->values();
 
-                    $startDate = $couple->started_at ?? $couple->start_date ?? null;
-                    $endDate   = $couple->ended_at ?? $couple->end_date ?? $couple->divorced_at ?? null;
+                  $startDate = $couple->married_at ?? null;
+$endDate   = $couple->divorced_at ?? null;
 
                     $endedByDeath = false;
 
@@ -227,49 +224,61 @@
 
                 <div class="marriage-card {{ $relation['class'] }} {{ $isEnded ? 'marriage-ended' : 'marriage-active' }}">
 
-                    <div class="marriage-title">
-                        {{ $relation['icon'] }} {{ $relation['label'] }}
+                    <div class="marriage-header">
 
-                        @if(!$isEnded)
-                            <span class="badge-status badge-active">Действующий</span>
-                        @elseif($endedByDeath)
-                            <span class="badge-status badge-death">Завершён</span>
-                        @else
-                            <span class="badge-status badge-divorce">Развод</span>
-                        @endif
-                    </div>
+                        <div>
+                            <div class="marriage-title">
+                                {{ $relation['icon'] }} {{ $relation['label'] }}
 
-                    @if($startDate || $endDate)
-                        <div class="marriage-period">
-                            {{ $startDate ? Carbon::parse($startDate)->year : '?' }}
-                            —
-                            {{ $endDate ? Carbon::parse($endDate)->year : 'н.в.' }}
+                                @if(!$isEnded)
+                                    <span class="badge-status badge-active">Действующий</span>
+                                @elseif($endedByDeath)
+                                    <span class="badge-status badge-death">Завершён</span>
+                                @else
+                                    <span class="badge-status badge-divorce">Развод</span>
+                                @endif
+                            </div>
+
+                            @if($startDate || $endDate)
+                                <div class="marriage-period">
+                                    {{ $startDate ? Carbon::parse($startDate)->year : '?' }}
+                                    —
+                                    {{ $endDate ? Carbon::parse($endDate)->year : 'н.в.' }}
+                                </div>
+
+                                @if($durationYears)
+                                    <div class="small text-muted">
+                                        В браке {{ $durationYears }} лет
+                                    </div>
+                                @endif
+
+                                @if($endedByDeath)
+                                    <div class="small text-muted" style="font-style: italic;">
+                                        🕯 Брак длился до ухода супруга в {{ Carbon::parse($endDate)->year }} году
+                                    </div>
+                                @endif
+                            @endif
                         </div>
 
-                        @if($durationYears)
-                            <div class="small text-muted">
-                                В браке {{ $durationYears }} {{ \Illuminate\Support\Str::plural('год', $durationYears) }}
-                            </div>
-                        @endif
+                        @can('update', $couple)
+                            <a href="{{ route('couples.edit', $couple) }}"
+                               class="btn btn-sm btn-outline-secondary">
+                                ✏
+                            </a>
+                        @endcan
 
-                        @if($endedByDeath)
-                            <div class="small text-muted" style="font-style: italic;">
-                                🕯 Брак длился до ухода супруга в {{ Carbon::parse($endDate)->year }} году
-                            </div>
-                        @endif
+                    </div>
 
-                    @endif
-
+                    {{-- СУПРУГ --}}
                     @if($spouse)
                         <div class="spouse-card">
                             <img class="spouse-photo"
                                  src="{{ $spouse->photo
-            ? asset('storage/'.$spouse->photo)
-            : route('avatar', [
-                'name' => mb_substr($spouse->first_name,0,1).mb_substr($spouse->last_name ?? '',0,1),
-                'gender' => $spouse->gender
-            ]) }}">
-
+                                    ? asset('storage/'.$spouse->photo)
+                                    : route('avatar', [
+                                        'name' => mb_substr($spouse->first_name,0,1).mb_substr($spouse->last_name ?? '',0,1),
+                                        'gender' => $spouse->gender
+                                    ]) }}">
                             <div>
                                 <strong>
                                     {{ $spouse->last_name }}
@@ -285,6 +294,7 @@
                         </div>
                     @endif
 
+                    {{-- ДЕТИ --}}
                     @if($children->count())
                         <div class="children">
                             @foreach($children as $child)
@@ -293,11 +303,11 @@
 
                                     <img class="child-photo"
                                          src="{{ $child->photo
-        ? asset('storage/'.$child->photo)
-        : route('avatar', [
-            'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
-            'gender' => $child->gender
-        ]) }}">
+                                            ? asset('storage/'.$child->photo)
+                                            : route('avatar', [
+                                                'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
+                                                'gender' => $child->gender
+                                            ]) }}">
 
                                     <div class="child-name">{{ $child->first_name }}</div>
                                     <div class="child-role">
@@ -313,49 +323,8 @@
                         </div>
                     @endif
 
-                    @can('manageChildren', $couple)
-                        <button class="btn btn-sm btn-link text-muted p-0 mt-2"
-                                onclick="toggleAddChild({{ $couple->id }})">
-                            ➕ Добавить ребёнка в эту семью
-                        </button>
-
-                        <div class="add-child-box d-none" id="add-child-box-{{ $couple->id }}">
-
-                            <form method="POST"
-                                  action="{{ route('couples.children.store', $couple) }}"
-                                  class="mb-2">
-                                @csrf
-                                <div class="d-flex gap-2">
-                                    <input name="first_name" class="form-control form-control-sm" placeholder="Имя" required>
-                                    <input name="last_name" class="form-control form-control-sm" placeholder="Фамилия">
-                                    <button class="btn btn-sm btn-outline-primary">➕</button>
-                                </div>
-                            </form>
-
-                            @if(isset($existingChildrenCandidates) && $existingChildrenCandidates->count())
-                                <form method="POST"
-                                      action="{{ route('couples.children.attach', $couple) }}">
-                                    @csrf
-                                    <div class="d-flex gap-2">
-                                        <select name="child_id" class="form-select form-select-sm" required>
-                                            <option value="">Выбрать существующего ребёнка</option>
-                                            @foreach($existingChildrenCandidates as $candidate)
-                                                <option value="{{ $candidate->id }}">
-                                                    {{ $candidate->last_name }}
-                                                    {{ $candidate->first_name }}
-                                                    {{ $candidate->patronymic }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <button class="btn btn-sm btn-outline-secondary">🔗</button>
-                                    </div>
-                                </form>
-                            @endif
-
-                        </div>
-                    @endcan
-
                 </div>
+
             @endforeach
         </div>
     @endif
@@ -363,11 +332,6 @@
     <script>
         function toggleRelationshipForm() {
             const el = document.getElementById('relationship-form-container');
-            if (el) el.classList.toggle('d-none');
-        }
-
-        function toggleAddChild(id) {
-            const el = document.getElementById('add-child-box-' + id);
             if (el) el.classList.toggle('d-none');
         }
     </script>

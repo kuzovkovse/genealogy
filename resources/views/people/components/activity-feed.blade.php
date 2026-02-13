@@ -25,7 +25,7 @@
                 <div class="relative pl-6 border-l border-gray-200 space-y-4">
 
                     @foreach ($items as $log)
-                        <x-people.components.activity-item :log="$log" />
+                        @include('people.partials.activity-item', ['log' => $log])
                     @endforeach
 
                 </div>
@@ -35,7 +35,7 @@
         @endif
 
     @empty
-        <x-people.components.empty-state text="Пока нет событий" />
+        @include('people.partials.empty-state', ['text' => 'Пока нет событий'])
     @endforelse
 
 </div>
