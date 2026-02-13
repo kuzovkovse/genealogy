@@ -2,15 +2,15 @@
     .marriages {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-        gap: 24px;
+        gap: 20px;
         margin-bottom: 32px;
     }
 
     .family-card {
         background: #fff;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 8px 24px rgba(0,0,0,.05);
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.04);
         margin-bottom: 32px;
     }
 
@@ -21,73 +21,96 @@
         margin-top: 4px;
     }
 
+    /* ==============================
+       КАРТОЧКА СВЯЗИ (Историческая)
+    ===============================*/
+
     .marriage-card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 18px;
-        box-shadow: 0 8px 24px rgba(0,0,0,.05);
-        border-left: 6px solid transparent;
-        transition: background .2s ease, opacity .2s ease;
+        background: linear-gradient(to bottom right, #ffffff, #fafafa);
+        border-radius: 18px;
+        padding: 16px 18px;
+        border-left: 4px solid #d1d5db;
+        transition: all .25s ease;
+        position: relative;
     }
 
-    .relation-marriage { border-left-color: #f59e0b; }
+    .marriage-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.06);
+    }
+
+    .relation-marriage { border-left-color: #d6b36b; }
     .relation-civil    { border-left-color: #6366f1; }
     .relation-parents  { border-left-color: #06b6d4; }
 
-    .marriage-active {
-        background: linear-gradient(to right, #f0fdf4, #ffffff);
+    .marriage-ended {
+        opacity: .95;
     }
 
-    .marriage-ended {
-        background: #f9fafb;
-        opacity: .92;
-        border-left-color: #9ca3af !important;
+    .marriage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 10px;
+    }
+
+    .marriage-title {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
     }
 
     .badge-status {
         font-size: 11px;
-        padding: 4px 8px;
+        padding: 3px 8px;
         border-radius: 999px;
-        margin-left: 8px;
     }
 
     .badge-active  { background: #dcfce7; color: #166534; }
     .badge-divorce { background: #fee2e2; color: #991b1b; }
     .badge-death   { background: #e5e7eb; color: #374151; }
 
-    .marriage-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 10px;
-    }
-
-    .marriage-title {
-        font-weight: 600;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .marriage-period {
+    .marriage-meta {
         font-size: 13px;
         color: #6b7280;
         margin-top: 4px;
+    }
+
+    /* Мини таймлайн */
+
+    .timeline {
+        height: 4px;
+        background: #e5e7eb;
+        border-radius: 999px;
+        margin-top: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .timeline-bar {
+        height: 100%;
+        background: linear-gradient(to right, #c9a646, #e5d3a1);
+        border-radius: 999px;
+        width: 100%;
+    }
+
+    .timeline-ended {
+        background: linear-gradient(to right, #9ca3af, #d1d5db);
     }
 
     .spouse-card {
         display: flex;
         gap: 12px;
         align-items: center;
-        padding: 10px;
-        border-radius: 12px;
-        background: #f9fafb;
-        margin-bottom: 12px;
+        margin-top: 14px;
+        padding: 8px 0;
     }
 
     .spouse-photo {
-        width: 48px;
-        height: 48px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid #e5e7eb;
@@ -95,30 +118,29 @@
 
     .children {
         display: flex;
-        gap: 12px;
+        gap: 10px;
         flex-wrap: wrap;
-        margin-top: 8px;
+        margin-top: 12px;
     }
 
     .child-card {
-        width: 90px;
+        width: 82px;
         text-align: center;
-        padding: 8px 6px;
+        padding: 6px;
         border-radius: 12px;
         background: #f3f4f6;
+        transition: all .2s ease;
         cursor: pointer;
-        transition: transform .15s ease, background .15s ease;
-        position: relative;
     }
 
     .child-card:hover {
         background: #e5e7eb;
-        transform: translateY(-2px);
+        transform: translateY(-1px);
     }
 
     .child-photo {
-        width: 44px;
-        height: 44px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         object-fit: cover;
         margin-bottom: 4px;
@@ -126,20 +148,52 @@
     }
 
     .child-name {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
     }
 
     .child-role {
-        font-size: 11px;
+        font-size: 10px;
         color: #6b7280;
     }
 
-    .add-child-box {
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #d1d5db;
+    .edit-link {
+        font-size: 15px;
+        text-decoration: none;
+        color: #6b7280;
+        transition: color .2s ease;
     }
+
+    .edit-link:hover {
+        color: #111827;
+    }
+
+    /* ===============================
+   Subtle Grain Texture
+================================ */
+
+    .marriage-card {
+        position: relative;
+        overflow: hidden
+    }
+
+    .marriage-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.035; /* регулируй 0.02–0.06 */
+        mix-blend-mode: multiply;
+        background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'>\
+<filter id='noise'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>\
+</filter>\
+<rect width='100%' height='100%' filter='url(%23noise)'/>\
+</svg>");
+        background-size: 200px 200px;
+    }
+
 </style>
 
 @php
@@ -154,7 +208,6 @@
 
 <div class="family-card">
 
-    {{-- Заголовок --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-0">👨‍👩‍👧 Семья и дети</h3>
@@ -193,8 +246,8 @@
                         ->sortBy(fn($c) => $c->birth_date ?? '9999-12-31')
                         ->values();
 
-                  $startDate = $couple->married_at ?? null;
-$endDate   = $couple->divorced_at ?? null;
+                    $startDate = $couple->married_at ?? null;
+                    $endDate   = $couple->divorced_at ?? null;
 
                     $endedByDeath = false;
 
@@ -212,17 +265,17 @@ $endDate   = $couple->divorced_at ?? null;
 
                     $durationYears = null;
 
-if ($startDate && $endDate) {
-    $start = Carbon::parse($startDate);
-    $end   = Carbon::parse($endDate);
+                    if ($startDate && $endDate) {
+                        $start = Carbon::parse($startDate);
+                        $end   = Carbon::parse($endDate);
 
-    if ($end->greaterThan($start)) {
-        $durationYears = (int) $start->diffInYears($end);
-    }
-}
+                        if ($end->greaterThan($start)) {
+                            $durationYears = (int) $start->diffInYears($end);
+                        }
+                    }
                 @endphp
 
-                <div class="marriage-card {{ $relation['class'] }} {{ $isEnded ? 'marriage-ended' : 'marriage-active' }}">
+                <div class="marriage-card {{ $relation['class'] }} {{ $isEnded ? 'marriage-ended' : '' }}">
 
                     <div class="marriage-header">
 
@@ -237,39 +290,39 @@ if ($startDate && $endDate) {
                                 @else
                                     <span class="badge-status badge-divorce">Развод</span>
                                 @endif
+
+                                @if($endedByDeath)
+                                    <span class="text-muted small">
+                                        — Брак длился до ухода супруга в {{ Carbon::parse($endDate)->year }} году
+                                    </span>
+                                @endif
                             </div>
 
                             @if($startDate || $endDate)
-                                <div class="marriage-period">
+                                <div class="marriage-meta">
                                     {{ $startDate ? Carbon::parse($startDate)->year : '?' }}
                                     —
                                     {{ $endDate ? Carbon::parse($endDate)->year : 'н.в.' }}
+                                    @if($durationYears)
+                                        · {{ $durationYears }} лет вместе
+                                    @endif
                                 </div>
 
-                                @if($durationYears)
-                                    <div class="small text-muted">
-                                        В браке {{ $durationYears }} лет
-                                    </div>
-                                @endif
-
-                                @if($endedByDeath)
-                                    <div class="small text-muted" style="font-style: italic;">
-                                        🕯 Брак длился до ухода супруга в {{ Carbon::parse($endDate)->year }} году
-                                    </div>
-                                @endif
+                                <div class="timeline">
+                                    <div class="timeline-bar {{ $isEnded ? 'timeline-ended' : '' }}"></div>
+                                </div>
                             @endif
                         </div>
 
                         @can('update', $couple)
                             <a href="{{ route('couples.edit', $couple) }}"
-                               class="btn btn-sm btn-outline-secondary">
+                               class="edit-link">
                                 ✏
                             </a>
                         @endcan
 
                     </div>
 
-                    {{-- СУПРУГ --}}
                     @if($spouse)
                         <div class="spouse-card">
                             <img class="spouse-photo"
@@ -294,13 +347,11 @@ if ($startDate && $endDate) {
                         </div>
                     @endif
 
-                    {{-- ДЕТИ --}}
                     @if($children->count())
                         <div class="children">
                             @foreach($children as $child)
                                 <div class="child-card"
                                      onclick="window.location.href='{{ route('people.show', $child) }}'">
-
                                     <img class="child-photo"
                                          src="{{ $child->photo
                                             ? asset('storage/'.$child->photo)
@@ -308,12 +359,10 @@ if ($startDate && $endDate) {
                                                 'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
                                                 'gender' => $child->gender
                                             ]) }}">
-
                                     <div class="child-name">{{ $child->first_name }}</div>
                                     <div class="child-role">
                                         {{ $child->gender === 'male' ? 'Сын' : 'Дочь' }}
                                     </div>
-
                                 </div>
                             @endforeach
                         </div>
@@ -322,6 +371,68 @@ if ($startDate && $endDate) {
                             У этой семьи пока не указаны дети
                         </div>
                     @endif
+                    @can('manageChildren', $couple)
+
+                        <div class="add-child-section mt-3">
+
+                            <button class="btn btn-sm btn-link text-muted p-0"
+                                    onclick="toggleAddChild({{ $couple->id }})">
+                                ➕ Добавить ребёнка в эту семью
+                            </button>
+
+                            <div class="add-child-box d-none mt-2"
+                                 id="add-child-box-{{ $couple->id }}">
+
+                                {{-- Создать нового --}}
+                                <form method="POST"
+                                      action="{{ route('couples.children.store', $couple) }}"
+                                      class="mb-2">
+                                    @csrf
+                                    <div class="d-flex gap-2">
+                                        <input name="first_name"
+                                               class="form-control form-control-sm"
+                                               placeholder="Имя"
+                                               required>
+
+                                        <input name="last_name"
+                                               class="form-control form-control-sm"
+                                               placeholder="Фамилия">
+
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            ➕
+                                        </button>
+                                    </div>
+                                </form>
+
+                                {{-- Привязать существующего --}}
+                                @if(isset($existingChildrenCandidates) && $existingChildrenCandidates->count())
+                                    <form method="POST"
+                                          action="{{ route('couples.children.attach', $couple) }}">
+                                        @csrf
+                                        <div class="d-flex gap-2">
+                                            <select name="child_id"
+                                                    class="form-select form-select-sm"
+                                                    required>
+                                                <option value="">Выбрать существующего ребёнка</option>
+                                                @foreach($existingChildrenCandidates as $candidate)
+                                                    <option value="{{ $candidate->id }}">
+                                                        {{ $candidate->last_name }}
+                                                        {{ $candidate->first_name }}
+                                                        {{ $candidate->patronymic }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <button class="btn btn-sm btn-outline-secondary">
+                                                🔗
+                                            </button>
+                                        </div>
+                                    </form>
+                                @endif
+
+                            </div>
+                        </div>
+
+                    @endcan
 
                 </div>
 
@@ -334,6 +445,12 @@ if ($startDate && $endDate) {
             const el = document.getElementById('relationship-form-container');
             if (el) el.classList.toggle('d-none');
         }
+
+        function toggleAddChild(id) {
+            const el = document.getElementById('add-child-box-' + id);
+            if (el) el.classList.toggle('d-none');
+        }
+
     </script>
 
 </div>
