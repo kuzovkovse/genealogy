@@ -25,24 +25,48 @@ class PersonController extends Controller
     /* ===============================
   * 👥 Список людей (по поколениям)
   * =============================== */
-    public function index(GenerationService $generationService)
+    public function index(Request $request, GenerationService $generationService)
     {
-        $family = FamilyContext::require();
+        $mode = $request->query('mode', 'structure');
 
-        // Все люди семьи
-        $people = Person::where('family_id', $family->id)
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+        $people = Person::query()
+            ->where('family_id', app('activeFamily')->id)
             ->get();
 
-        // Группировка по поколениям (I, II, III…)
-        $generations = $generationService->build($people);
+        if ($mode === 'list') {
+
+            // 📋 Общий список без поколений
+            return view('people.index', [
+                'mode' => $mode,
+                'peopleList' => $people->sortBy('last_name'),
+                'generations' => [],
+            ]);
+        }
+
+        if ($mode === 'blood') {
+            $generations = $generationService->buildBloodOnly($people);
+        } else {
+            // structure по умолчанию
+            $generations = $generationService->buildWithSpouses($people);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 👑 Определяем родоначальника
+        |--------------------------------------------------------------------------
+        */
+
+        $rootId = $generationService->getRootPersonId($people);
 
         return view('people.index', [
-            'people'      => $people,      // оставляем для совместимости
-            'generations' => $generations, // 👈 ОСНОВНОЕ
+            'mode' => $mode,
+            'generations' => $generations,
+            'peopleList' => collect(),
+            'rootId' => $rootId,   // ← ВОТ ЭТО ГЛАВНОЕ
         ]);
     }
+
+
 
 
     /* ===============================

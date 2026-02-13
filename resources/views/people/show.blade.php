@@ -667,7 +667,9 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="mb-0">📖 История жизни</h3>
                 @can('update', $person)
-                    <button class="btn btn-sm btn-outline-primary">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            onclick="toggleBiographyEdit()">
                         ✏️ Редактировать
                     </button>
                 @endcan

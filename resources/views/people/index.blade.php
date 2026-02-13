@@ -5,7 +5,7 @@
 @section('content')
 
     {{-- ================= HEADER ================= --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="mb-0">Люди</h1>
 
         @can('create', \App\Models\Person::class)
@@ -13,6 +13,26 @@
                 ➕ Добавить человека
             </a>
         @endcan
+    </div>
+
+    {{-- ================= MODE SWITCHER ================= --}}
+    <div class="mb-4 d-flex gap-2">
+
+        <a href="{{ route('people.index', ['mode' => 'structure']) }}"
+           class="btn btn-sm {{ $mode === 'structure' ? 'btn-primary' : 'btn-outline-primary' }}">
+            👨‍👩‍👧 Семейная структура
+        </a>
+
+        <a href="{{ route('people.index', ['mode' => 'blood']) }}"
+           class="btn btn-sm {{ $mode === 'blood' ? 'btn-primary' : 'btn-outline-primary' }}">
+            🧬 Генеалогия
+        </a>
+
+        <a href="{{ route('people.index', ['mode' => 'list']) }}"
+           class="btn btn-sm {{ $mode === 'list' ? 'btn-primary' : 'btn-outline-primary' }}">
+            📋 Общий список
+        </a>
+
     </div>
 
     {{-- ================= SEARCH & FILTERS ================= --}}
@@ -54,6 +74,7 @@
         </div>
     </div>
 
+    {{-- ================= STYLES ================= --}}
     <style>
         .generation-block { margin-bottom: 48px; }
 
@@ -147,94 +168,105 @@
 
         .badge {
             font-size: 11px;
-            padding: 3px 7px;
+            padding: 4px 8px;
             border-radius: 999px;
-            background: rgba(255,255,255,.9);
-            box-shadow: 0 2px 6px rgba(0,0,0,.12);
+            background: #ffffff;
+            color: #111827; /* 👈 тёмный текст */
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
             white-space: nowrap;
         }
 
-        .badge-war   { color: #92400e; }
-        .badge-alive { color: #065f46; }
-        .badge-dead  { color: #7f1d1d; }
+        .badge-war {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .badge-alive {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .badge-dead {
+            background: #f3f4f6;
+            color: #7f1d1d;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
+            white-space: nowrap;
+        }
+
+        .badge-war {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .badge-alive {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .badge-dead {
+            background: #f3f4f6;
+            color: #7f1d1d;
+        }
+
+        .badge-root {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* ===== РОДОНАЧАЛЬНИК ===== */
+
+        .root-person {
+            border: 2px solid #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245,158,11,.25);
+        }
     </style>
 
-    {{-- ================= GENERATIONS ================= --}}
-    @forelse($generations as $level => $people)
-        <div class="generation-block">
+    {{-- ================= GENERATIONS MODE ================= --}}
+    @if($mode !== 'list')
 
-            <div class="generation-title">
-                {{ roman($level) }} поколение
-                <span class="text-muted" style="font-size:13px;">
-            ({{ $people->count() }})
-        </span>
+        @forelse($generations as $level => $people)
+            <div class="generation-block">
+
+                <div class="generation-title">
+                    {{ roman($level) }} поколение
+                    <span class="text-muted" style="font-size:13px;">
+                        ({{ $people->count() }})
+                    </span>
+                </div>
+
+                <div class="people-grid">
+                    @foreach($people as $person)
+                        @include('people.partials.person-card')
+                    @endforeach
+                </div>
             </div>
+        @empty
+            <p class="text-muted">Пока нет ни одного человека</p>
+        @endforelse
 
-            <div class="people-grid">
-                @foreach($people as $person)
+    @endif
 
-                    @php
-                        $fullName = trim(
-                            ($person->last_name ?? '').' '.
-                            ($person->first_name ?? '').' '.
-                            ($person->patronymic ?? '')
-                        );
 
-                        $birthYear = $person->birth_date ? \Carbon\Carbon::parse($person->birth_date)->year : null;
-                        $deathYear = $person->death_date ? \Carbon\Carbon::parse($person->death_date)->year : null;
+    {{-- ================= LIST MODE ================= --}}
+    @if($mode === 'list')
 
-                        if ($birthYear) {
-                            $lifeLine = $deathYear
-                                ? "$birthYear — $deathYear"
-                                : "род. $birthYear";
-                        } else {
-                            $lifeLine = null;
-                        }
-                    @endphp
-
-                    <div class="person-card {{ $person->death_date ? 'dead' : 'alive' }}"
-                         data-name="{{ mb_strtolower($fullName) }}"
-                         data-gender="{{ $person->gender }}"
-                         data-war="{{ $person->is_war_participant ? '1' : '0' }}"
-                         data-life="{{ $person->death_date ? 'dead' : 'alive' }}">
-
-                        <a href="{{ route('people.show', $person) }}" class="person-link"></a>
-
-                        <button class="tree-btn"
-                                onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'">
-                            🌳
-                        </button>
-
-                        <div class="badges">
-                            @if($person->is_war_participant)
-                                <div class="badge badge-war">🎖 ВОВ</div>
-                            @endif
-
-                            @if($person->death_date)
-                                <div class="badge badge-dead">🕯 Умер</div>
-                            @else
-                                <div class="badge badge-alive">❤️ Жив</div>
-                            @endif
-                        </div>
-
-                        <div class="person-photo">
-                            <img src="{{ $person->photo ? asset('storage/'.$person->photo) : asset('storage/people/placepeople.png') }}">
-                        </div>
-
-                        <div class="person-name">{{ $fullName }}</div>
-
-                        @if($lifeLine)
-                            <div class="person-life">{{ $lifeLine }}</div>
-                        @endif
-                    </div>
-
-                @endforeach
-            </div>
+        <div class="people-grid">
+            @foreach($peopleList as $person)
+                @include('people.partials.person-card')
+            @endforeach
         </div>
-    @empty
-        <p class="text-muted">Пока нет ни одного человека</p>
-    @endforelse
 
+    @endif
+
+
+    {{-- ================= FILTER SCRIPT ================= --}}
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -246,7 +278,6 @@
             const alive = document.getElementById('filter-alive');
             const dead = document.getElementById('filter-dead');
 
-            /* ================= SAVE ================= */
             function saveState() {
                 const state = {
                     search: search.value,
@@ -255,41 +286,24 @@
                     alive: alive.checked,
                     dead: dead.checked,
                 };
-
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             }
 
-            /* ================= RESTORE ================= */
             function restoreState() {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (!raw) return;
 
-                try {
-                    const state = JSON.parse(raw);
+                const state = JSON.parse(raw);
 
-                    if (typeof state.search === 'string') {
-                        search.value = state.search;
-                    }
-
-                    if (Array.isArray(state.genders)) {
-                        genders.forEach(cb => {
-                            cb.checked = state.genders.includes(cb.value);
-                        });
-                    }
-
-                    war.checked = !!state.war;
-                    alive.checked = !!state.alive;
-                    dead.checked = !!state.dead;
-
-                } catch (e) {
-                    console.warn('Failed to restore filters', e);
-                }
+                search.value = state.search || '';
+                genders.forEach(cb => cb.checked = state.genders?.includes(cb.value));
+                war.checked = !!state.war;
+                alive.checked = !!state.alive;
+                dead.checked = !!state.dead;
             }
 
-            /* ================= APPLY ================= */
             function applyFilters() {
                 const q = search.value.toLowerCase().trim();
-
                 const selectedGenders = [...genders]
                     .filter(cb => cb.checked)
                     .map(cb => cb.value);
@@ -307,7 +321,6 @@
                 });
             }
 
-            /* ================= EVENTS ================= */
             function onChange() {
                 saveState();
                 applyFilters();
@@ -316,7 +329,6 @@
             [search, war, alive, dead, ...genders]
                 .forEach(el => el.addEventListener('input', onChange));
 
-            /* ================= INIT ================= */
             restoreState();
             applyFilters();
         });
