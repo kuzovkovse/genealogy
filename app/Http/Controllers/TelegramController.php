@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Person;
+use Carbon\Carbon;
 
 class TelegramController extends Controller
 {
@@ -18,33 +20,101 @@ class TelegramController extends Controller
         $chatId = $data['message']['chat']['id'];
         $text   = trim($data['message']['text'] ?? '');
 
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Проверяем — подключён ли уже Telegram
+        |--------------------------------------------------------------------------
+        */
+
+        $user = User::where('telegram_chat_id', $chatId)->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Команда /start
+        |--------------------------------------------------------------------------
+        */
+
         if ($text === '/start') {
+
+            if ($user) {
+                $this->sendMessage($chatId,
+                    "✅ Telegram уже подключён к вашему аккаунту.\n\n" .
+                    "Доступные команды:\n" .
+                    "/birthdays — ближайшие дни рождения"
+                );
+                return response()->json(['ok' => true]);
+            }
+
             $this->sendMessage($chatId,
                 "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля."
             );
+
             return response()->json(['ok' => true]);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Если пользователь НЕ подключён — ожидаем код
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$user) {
+
+            $userByCode = User::where('telegram_connect_code', $text)->first();
+
+            if (!$userByCode) {
+                $this->sendMessage($chatId, "❌ Неверный код подключения.");
+                return response()->json(['ok' => true]);
+            }
+
+            // Подключаем
+            $userByCode->telegram_chat_id = $chatId;
+            $userByCode->telegram_connect_code = null;
+            $userByCode->save();
+
+            $this->sendMessage($chatId,
+                "✅ Telegram успешно подключён к вашему аккаунту!\n\n" .
+                "Доступные команды:\n" .
+                "/birthdays — ближайшие дни рождения"
+            );
+
+            return response()->json(['ok' => true]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 4. Обработка команд для подключённого пользователя
+        |--------------------------------------------------------------------------
+        */
 
         if ($text === '/birthdays') {
-            $this->sendBirthdays($chatId);
+            $this->sendBirthdays($user, $chatId);
             return response()->json(['ok' => true]);
         }
 
+        $this->sendMessage($chatId, "Команда не распознана.");
         return response()->json(['ok' => true]);
     }
 
-    private function sendBirthdays($chatId)
+    /*
+    |--------------------------------------------------------------------------
+    | Ближайшие дни рождения
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendBirthdays($user, $chatId)
     {
         $today = now();
-        $in7   = now()->addDays(7);
+        $in7   = now()->copy()->addDays(7);
 
-        $people = \App\Models\Person::whereNotNull('birth_date')->get();
+        $people = Person::whereNotNull('birth_date')->get();
 
         $upcoming = $people->filter(function ($person) use ($today, $in7) {
-            $birthdayThisYear = \Carbon\Carbon::parse($person->birth_date)
+
+            $birthday = Carbon::parse($person->birth_date)
                 ->year($today->year);
 
-            return $birthdayThisYear->between($today, $in7);
+            return $birthday->between($today, $in7);
         });
 
         if ($upcoming->isEmpty()) {
@@ -55,19 +125,47 @@ class TelegramController extends Controller
         $message = "🎂 Ближайшие дни рождения:\n\n";
 
         foreach ($upcoming as $person) {
-            $birthDate = \Carbon\Carbon::parse($person->birth_date);
+
+            $birthDate = Carbon::parse($person->birth_date);
             $birthdayThisYear = $birthDate->year($today->year);
 
             $age = $today->year - $birthDate->year;
 
             $message .= "• {$person->first_name} {$person->last_name}\n";
             $message .= "  📅 " . $birthdayThisYear->format('d.m') . "\n";
-            $message .= "  🎈 Исполняется {$age}\n\n";
+            $message .= "  🎈 Исполняется " . $this->formatYears($age) . "\n\n";
         }
 
         $this->sendMessage($chatId, $message);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Правильное склонение "год"
+    |--------------------------------------------------------------------------
+    */
+
+    private function formatYears($age)
+    {
+        $mod10 = $age % 10;
+        $mod100 = $age % 100;
+
+        if ($mod10 == 1 && $mod100 != 11) {
+            return $age . " год";
+        }
+
+        if ($mod10 >= 2 && $mod10 <= 4 && !($mod100 >= 12 && $mod100 <= 14)) {
+            return $age . " года";
+        }
+
+        return $age . " лет";
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Отправка сообщения
+    |--------------------------------------------------------------------------
+    */
 
     private function sendMessage($chatId, $text)
     {
