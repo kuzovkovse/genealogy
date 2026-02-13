@@ -16,34 +16,58 @@ class TelegramController extends Controller
         }
 
         $chatId = $data['message']['chat']['id'];
-        $username = $data['message']['from']['username'] ?? null;
-        $text = $data['message']['text'] ?? '';
+        $text   = trim($data['message']['text'] ?? '');
 
-        // Команда /start
-        if (str_starts_with($text, '/start')) {
-
-            $this->sendMessage($chatId, "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля.");
-
+        if ($text === '/start') {
+            $this->sendMessage($chatId,
+                "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля."
+            );
             return response()->json(['ok' => true]);
         }
 
-        // Иначе считаем что это код подключения
-        $user = User::where('telegram_connect_code', $text)->first();
-
-        if ($user) {
-            $user->update([
-                'telegram_id' => $chatId,
-                'telegram_username' => $username,
-                'telegram_connect_code' => null,
-            ]);
-
-            $this->sendMessage($chatId, "✅ Telegram успешно подключён к вашему аккаунту!");
-        } else {
-            $this->sendMessage($chatId, "❌ Неверный код подключения.");
+        if ($text === '/birthdays') {
+            $this->sendBirthdays($chatId);
+            return response()->json(['ok' => true]);
         }
 
         return response()->json(['ok' => true]);
     }
+
+    private function sendBirthdays($chatId)
+    {
+        $today = now();
+        $in7   = now()->addDays(7);
+
+        $people = \App\Models\Person::whereNotNull('birth_date')->get();
+
+        $upcoming = $people->filter(function ($person) use ($today, $in7) {
+            $birthdayThisYear = \Carbon\Carbon::parse($person->birth_date)
+                ->year($today->year);
+
+            return $birthdayThisYear->between($today, $in7);
+        });
+
+        if ($upcoming->isEmpty()) {
+            $this->sendMessage($chatId, "🎂 В ближайшие 7 дней дней рождения нет.");
+            return;
+        }
+
+        $message = "🎂 Ближайшие дни рождения:\n\n";
+
+        foreach ($upcoming as $person) {
+            $birthDate = \Carbon\Carbon::parse($person->birth_date);
+            $birthdayThisYear = $birthDate->year($today->year);
+
+            $age = $today->year - $birthDate->year;
+
+            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "  📅 " . $birthdayThisYear->format('d.m') . "\n";
+            $message .= "  🎈 Исполняется {$age}\n\n";
+        }
+
+        $this->sendMessage($chatId, $message);
+    }
+
 
     private function sendMessage($chatId, $text)
     {
