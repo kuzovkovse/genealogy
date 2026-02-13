@@ -212,14 +212,14 @@ $endDate   = $couple->divorced_at ?? null;
 
                     $durationYears = null;
 
-                    if ($startDate && $endDate) {
-                        $start = Carbon::parse($startDate);
-                        $end   = Carbon::parse($endDate);
+if ($startDate && $endDate) {
+    $start = Carbon::parse($startDate);
+    $end   = Carbon::parse($endDate);
 
-                        if ($end->greaterThan($start)) {
-                            $durationYears = $start->diffInYears($end);
-                        }
-                    }
+    if ($end->greaterThan($start)) {
+        $durationYears = (int) $start->diffInYears($end);
+    }
+}
                 @endphp
 
                 <div class="marriage-card {{ $relation['class'] }} {{ $isEnded ? 'marriage-ended' : 'marriage-active' }}">
