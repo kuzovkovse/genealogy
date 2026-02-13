@@ -245,12 +245,62 @@
 
                     $count = $children->count();
 
-                    $endDate = $couple->ended_at
-                        ?? $couple->end_date
-                        ?? $couple->divorced_at
-                        ?? null;
+                    /*
+|--------------------------------------------------------------------------
+| Определение даты окончания брака
+|--------------------------------------------------------------------------
+*/
 
-                    $isEnded = !empty($endDate);
+$endDate = $couple->ended_at
+    ?? $couple->end_date
+    ?? $couple->divorced_at
+    ?? null;
+
+// 🔹 ВАЖНО: всегда объявляем переменную
+$endedByDeath = false;
+
+if (!$endDate) {
+
+    // смерть супруга
+    if ($spouse?->death_date) {
+        $endDate = $spouse->death_date;
+        $endedByDeath = true;
+    }
+
+    // смерть текущего человека
+    elseif ($person->death_date) {
+        $endDate = $person->death_date;
+        $endedByDeath = true;
+    }
+}
+
+$isEnded = !empty($endDate);
+
+/*
+|--------------------------------------------------------------------------
+| 🕊 Если дата окончания не указана,
+| но один из супругов умер — считаем брак завершённым
+|--------------------------------------------------------------------------
+*/
+
+$deathDate = null;
+
+if (!$endDate) {
+
+    if ($spouse?->death_date) {
+        $deathDate = $spouse->death_date;
+    }
+
+    if ($person->death_date) {
+        $deathDate = $person->death_date;
+    }
+
+    if ($deathDate) {
+        $endDate = $deathDate;
+    }
+}
+
+$isEnded = !empty($endDate);
                 @endphp
 
                 <div class="marriage-card {{ $relation['class'] }} {{ $isEnded ? 'marriage-ended' : 'marriage-active' }}">
@@ -265,12 +315,21 @@
                         </div>
 
                         @if($couple->started_at || $endDate)
+
                             <div class="marriage-period">
-                                {{ $couple->started_at ? Carbon::parse($couple->started_at)->year : '?' }}
+                                {{ $couple->started_at ? \Carbon\Carbon::parse($couple->started_at)->year : '?' }}
                                 —
-                                {{ $endDate ? Carbon::parse($endDate)->year : 'н.в.' }}
+                                {{ $endDate ? \Carbon\Carbon::parse($endDate)->year : 'н.в.' }}
                             </div>
+
+                            @if($endedByDeath)
+                                <div class="small text-muted mt-1" style="font-style: italic;">
+                                    🕯 Брак длился до ухода супруга в {{ \Carbon\Carbon::parse($endDate)->year }} году
+                                </div>
+                            @endif
+
                         @endif
+
                     </div>
 
                     @if($spouse)
