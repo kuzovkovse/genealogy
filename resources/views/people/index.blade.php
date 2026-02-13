@@ -19,16 +19,19 @@
     <div class="mb-4 d-flex gap-2">
 
         <a href="{{ route('people.index', ['mode' => 'structure']) }}"
+           data-mode-link
            class="btn btn-sm {{ $mode === 'structure' ? 'btn-primary' : 'btn-outline-primary' }}">
             👨‍👩‍👧 Семейная структура
         </a>
 
         <a href="{{ route('people.index', ['mode' => 'blood']) }}"
+           data-mode-link
            class="btn btn-sm {{ $mode === 'blood' ? 'btn-primary' : 'btn-outline-primary' }}">
             🧬 Генеалогия
         </a>
 
         <a href="{{ route('people.index', ['mode' => 'list']) }}"
+           data-mode-link
            class="btn btn-sm {{ $mode === 'list' ? 'btn-primary' : 'btn-outline-primary' }}">
             📋 Общий список
         </a>
@@ -314,9 +317,19 @@
 
             z-index: 1000;
         }
+        /* ================= MODE ANIMATION ================= */
+
+        .mode-container {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .mode-exit {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
     </style>
-
+    <div id="people-container" class="mode-container">
     {{-- ================= GENERATIONS MODE ================= --}}
     @if($mode !== 'list')
 
@@ -375,7 +388,7 @@
         </div>
 
     @endif
-
+    </div> {{-- people-container --}}
 
     {{-- ================= FILTER SCRIPT ================= --}}
     <script>
@@ -458,6 +471,27 @@
                 block: 'start'
             });
         }
+        // ================= MODE SWITCH ANIMATION =================
+
+        document.querySelectorAll('[data-mode-link]').forEach(link => {
+
+            link.addEventListener('click', function (e) {
+
+                const container = document.getElementById('people-container');
+                if (!container) return;
+
+                e.preventDefault();
+
+                const url = this.getAttribute('href');
+
+                container.classList.add('mode-exit');
+
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 250);
+            });
+
+        });
 
     </script>
 
