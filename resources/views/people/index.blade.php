@@ -327,10 +327,41 @@
             opacity: 0;
             transform: translateY(10px);
         }
+        .person-phrase {
+            text-align: center;
+            font-size: 13px;
+            font-style: italic;
+            color: #6b7280;
+            padding-bottom: 12px;
+        }
+        .depth-phrase {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+        .generation-connection {
+            font-size: 13px;
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
 
     </style>
     <div id="people-container" class="mode-container">
     {{-- ================= GENERATIONS MODE ================= --}}
+        @if($mode !== 'list' && isset($yearsSpan) && $yearsSpan)
+
+            <div class="depth-phrase mb-4">
+                🧬 {{ $totalGenerations }} поколений — {{ $yearsSpan }} лет истории
+            </div>
+
+        @endif
+
     @if($mode !== 'list')
 
         @php $totalGenerations = count($generations); @endphp
@@ -351,6 +382,31 @@
         <div class="generations-wrapper">
 
         @forelse($generations as $level => $people)
+                @if($level > 1)
+
+                    @php
+                        $currentGen = $people;
+                        $prevGen = $generations[$level - 1] ?? null;
+
+                        $currentOldest = $currentGen->whereNotNull('birth_date')->sortBy('birth_date')->first();
+                        $prevOldest = $prevGen?->whereNotNull('birth_date')->sortBy('birth_date')->first();
+
+                        $gap = null;
+
+                        if ($currentOldest && $prevOldest) {
+                            $gap = \Carbon\Carbon::parse($prevOldest->birth_date)
+                                ->diffInYears(\Carbon\Carbon::parse($currentOldest->birth_date));
+                        }
+                    @endphp
+
+                    @if($gap)
+                        <div class="generation-connection">
+                            ⏳ Через {{ $gap }} лет род продолжился…
+                        </div>
+                    @endif
+
+                @endif
+
                 <div class="generation-block"
                      id="generation-{{ $level }}"
                      data-level="{{ $level }}">

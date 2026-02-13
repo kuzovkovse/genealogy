@@ -223,4 +223,43 @@ class Person extends Model
             }
         });
     }
+    public function getLifePhraseAttribute()
+    {
+        // 1️⃣ Участник ВОВ — приоритет
+        if ($this->is_war_participant) {
+            return 'Участник Великой Отечественной войны';
+        }
+
+        // 2️⃣ Если есть даты жизни
+        if ($this->birth_date) {
+
+            $birth = \Carbon\Carbon::parse($this->birth_date);
+
+            if ($this->death_date) {
+                $death = \Carbon\Carbon::parse($this->death_date);
+                $years = (int) $birth->diffInYears($death);
+
+                if ($years >= 80) {
+                    return "Прожил долгую жизнь — {$years} лет";
+                }
+
+                return "Прожил {$years} лет";
+            } else {
+                $years = (int) $birth->diffInYears(now());
+                return "Живёт уже {$years} лет";
+            }
+        }
+
+        // 3️⃣ Если есть дети
+        if ($this->children()->count() > 0) {
+            $count = $this->children()->count();
+
+            if ($count == 1) return 'Отец одного ребёнка';
+            if ($count <= 4) return "Родитель {$count} детей";
+
+            return "Глава большой семьи";
+        }
+
+        return null;
+    }
 }

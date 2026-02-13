@@ -58,11 +58,35 @@ class PersonController extends Controller
 
         $rootId = $generationService->getRootPersonId($people);
 
+        /*
+|--------------------------------------------------------------------------
+| 🧬 Глубина рода (эмоциональный слой)
+|--------------------------------------------------------------------------
+*/
+
+        $allPeople = collect($generations)->flatten();
+
+        $oldestBirth = $allPeople
+            ->whereNotNull('birth_date')
+            ->sortBy('birth_date')
+            ->first();
+
+        $yearsSpan = null;
+
+        if ($oldestBirth && $oldestBirth->birth_date) {
+            $yearsSpan = (int) Carbon::parse($oldestBirth->birth_date)
+                ->diffInYears(now());
+        }
+
+        $totalGenerations = count($generations);
+
         return view('people.index', [
             'mode' => $mode,
             'generations' => $generations,
             'peopleList' => collect(),
             'rootId' => $rootId,   // ← ВОТ ЭТО ГЛАВНОЕ
+            'yearsSpan' => $yearsSpan,
+            'totalGenerations' => $totalGenerations,
         ]);
     }
 

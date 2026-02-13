@@ -76,6 +76,11 @@
     @if($lifeLine)
         <div class="person-life">
             {{ $lifeLine }}
+            @if($person->life_phrase)
+                <div class="person-phrase">
+                    {{ $person->life_phrase }}
+                </div>
+            @endif
         </div>
     @endif
 
