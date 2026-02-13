@@ -17,7 +17,7 @@ class TelegramController extends Controller
             return response()->json(['ok' => true]);
         }
 
-        $chatId = $data['message']['chat']['id'];
+        $chatId = (string) $data['message']['chat']['id'];
         $text   = trim($data['message']['text'] ?? '');
 
         // Проверяем — уже ли подключён пользователь
@@ -41,6 +41,7 @@ class TelegramController extends Controller
             $userByCode = User::where('telegram_connect_code', $text)->first();
 
             if ($userByCode) {
+
                 $userByCode->telegram_chat_id = $chatId;
                 $userByCode->telegram_connect_code = null;
                 $userByCode->save();
