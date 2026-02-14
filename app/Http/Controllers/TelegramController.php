@@ -17,10 +17,9 @@ class TelegramController extends Controller
             return response()->json(['ok' => true]);
         }
 
-        $chatId = (string) $data['message']['chat']['id'];
+        $chatId = $data['message']['chat']['id'];
         $text   = trim($data['message']['text'] ?? '');
 
-        // Проверяем — уже ли подключён пользователь
         $user = User::where('telegram_chat_id', $chatId)->first();
 
         /*
@@ -30,14 +29,14 @@ class TelegramController extends Controller
         */
         if (!$user) {
 
-            if ($text === '/start') {
+            if ($text === '/start' || $text === '/старт') {
                 $this->sendMessage($chatId,
                     "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля."
                 );
                 return response()->json(['ok' => true]);
             }
 
-            // Пробуем интерпретировать сообщение как код
+            // Пытаемся подключить по коду
             $userByCode = User::where('telegram_connect_code', $text)->first();
 
             if ($userByCode) {
@@ -46,9 +45,12 @@ class TelegramController extends Controller
                 $userByCode->telegram_connect_code = null;
                 $userByCode->save();
 
-                $this->sendMessage($chatId,
-                    "✅ Telegram успешно подключён к вашему аккаунту!\n\nДоступные команды:\n/birthdays"
+                $this->sendMessage(
+                    $chatId,
+                    "✅ Telegram успешно подключён!\n\nВыберите действие:",
+                    $this->mainKeyboard()
                 );
+
             } else {
                 $this->sendMessage($chatId, "❌ Неверный код подключения.");
             }
@@ -58,74 +60,193 @@ class TelegramController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 2️⃣ Пользователь подключён — обрабатываем команды
+        | 2️⃣ Пользователь подключён — обработка команд
         |--------------------------------------------------------------------------
         */
 
-        if ($text === '/start') {
-            $this->sendMessage($chatId,
-                "👋 Вы уже подключены к ПомниКорни.\n\nДоступные команды:\n/birthdays"
-            );
-            return response()->json(['ok' => true]);
-        }
+        switch (mb_strtolower($text)) {
 
-        if ($text === '/birthdays') {
-            $this->sendBirthdays($chatId);
-            return response()->json(['ok' => true]);
-        }
+            case '/start':
+            case '/старт':
+                $this->sendMessage(
+                    $chatId,
+                    "👋 Вы подключены к ПомниКорни.\n\nВыберите действие:",
+                    $this->mainKeyboard()
+                );
+                break;
 
-        // Если неизвестная команда
-        $this->sendMessage($chatId,
-            "Неизвестная команда.\n\nДоступные команды:\n/birthdays"
-        );
+            case '🎂 сегодня':
+            case '/сегодня':
+                $this->sendTodayBirthdays($chatId);
+                break;
+
+            case '📅 неделя':
+            case '/неделя':
+                $this->sendWeekBirthdays($chatId);
+                break;
+
+            case '⚙ настройки':
+            case '/настройки':
+                $this->sendMessage(
+                    $chatId,
+                    "⚙ Настройки:\n\n/отключить — отвязать Telegram",
+                    $this->mainKeyboard()
+                );
+                break;
+
+            case '/отключить':
+                $user->telegram_chat_id = null;
+                $user->save();
+
+                $this->sendMessage(
+                    $chatId,
+                    "🔌 Telegram отключён от вашего аккаунта.\n\nЧтобы подключить снова — введите код."
+                );
+                break;
+
+            default:
+                $this->sendMessage(
+                    $chatId,
+                    "Неизвестная команда.\n\nВыберите действие:",
+                    $this->mainKeyboard()
+                );
+        }
 
         return response()->json(['ok' => true]);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 🎂 Сегодня
+    |--------------------------------------------------------------------------
+    */
 
-    private function sendBirthdays($chatId)
+    private function sendTodayBirthdays($chatId)
     {
-        $today = now();
-        $in7   = now()->addDays(7);
+        $today = Carbon::today();
+
+        $people = Person::whereNotNull('birth_date')->get();
+
+        $todayBirthdays = $people->filter(function ($person) use ($today) {
+            $birth = Carbon::parse($person->birth_date);
+            return $birth->day === $today->day &&
+                $birth->month === $today->month;
+        });
+
+        if ($todayBirthdays->isEmpty()) {
+            $this->sendMessage($chatId, "🎂 Сегодня дней рождения нет.", $this->mainKeyboard());
+            return;
+        }
+
+        $message = "🎉 Сегодня день рождения:\n\n";
+
+        foreach ($todayBirthdays as $person) {
+            $birth = Carbon::parse($person->birth_date);
+            $age   = $today->year - $birth->year;
+
+            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+        }
+
+        $this->sendMessage($chatId, $message, $this->mainKeyboard());
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📅 Неделя
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendWeekBirthdays($chatId)
+    {
+        $today = Carbon::today();
+        $in7   = Carbon::today()->addDays(7);
 
         $people = Person::whereNotNull('birth_date')->get();
 
         $upcoming = $people->filter(function ($person) use ($today, $in7) {
-            $birthdayThisYear = Carbon::parse($person->birth_date)
-                ->year($today->year);
-
-            return $birthdayThisYear->between($today, $in7);
+            $birth = Carbon::parse($person->birth_date)->year($today->year);
+            return $birth->between($today, $in7);
         });
 
         if ($upcoming->isEmpty()) {
-            $this->sendMessage($chatId, "🎂 В ближайшие 7 дней дней рождения нет.");
+            $this->sendMessage($chatId, "📅 В ближайшие 7 дней дней рождения нет.", $this->mainKeyboard());
             return;
         }
 
-        $message = "🎂 Ближайшие дни рождения:\n\n";
+        $message = "📅 Ближайшие дни рождения:\n\n";
 
         foreach ($upcoming as $person) {
-            $birthDate = Carbon::parse($person->birth_date);
-            $birthdayThisYear = $birthDate->year($today->year);
-
-            $age = $today->year - $birthDate->year;
+            $birth = Carbon::parse($person->birth_date);
+            $birthday = $birth->year($today->year);
+            $age = $today->year - $birth->year;
 
             $message .= "• {$person->first_name} {$person->last_name}\n";
-            $message .= "  📅 " . $birthdayThisYear->format('d.m') . "\n";
-            $message .= "  🎈 Исполняется {$age}\n\n";
+            $message .= "  📅 " . $birthday->format('d.m') . "\n";
+            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
         }
 
-        $this->sendMessage($chatId, $message);
+        $this->sendMessage($chatId, $message, $this->mainKeyboard());
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 🔤 Склонение возраста
+    |--------------------------------------------------------------------------
+    */
 
-    private function sendMessage($chatId, $text)
+    private function plural($age)
+    {
+        if ($age % 10 == 1 && $age % 100 != 11) return 'год';
+        if (in_array($age % 10, [2,3,4]) && !in_array($age % 100, [12,13,14])) return 'года';
+        return 'лет';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🎛 Главное меню
+    |--------------------------------------------------------------------------
+    */
+
+    private function mainKeyboard()
+    {
+        return [
+            'keyboard' => [
+                [
+                    ['text' => '🎂 Сегодня'],
+                    ['text' => '📅 Неделя'],
+                ],
+                [
+                    ['text' => '⚙ Настройки']
+                ]
+            ],
+            'resize_keyboard' => true,
+            'persistent' => true
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📤 Отправка сообщения
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendMessage($chatId, $text, $keyboard = null)
     {
         $token = config('services.telegram.bot_token');
 
-        file_get_contents("https://api.telegram.org/bot{$token}/sendMessage?" . http_build_query([
-                'chat_id' => $chatId,
-                'text' => $text,
-            ]));
+        $params = [
+            'chat_id' => $chatId,
+            'text' => $text,
+        ];
+
+        if ($keyboard) {
+            $params['reply_markup'] = json_encode($keyboard);
+        }
+
+        file_get_contents(
+            "https://api.telegram.org/bot{$token}/sendMessage?" .
+            http_build_query($params)
+        );
     }
 }
