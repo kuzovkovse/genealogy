@@ -20,11 +20,10 @@ class DailyMemoryService
         $blocks = [];
 
         // ===============================
-        // 🧬 События семьи
+        // 1️⃣ События рода (приоритет)
         // ===============================
         if ($family) {
 
-            // 🕯 Память
             $deathPersons = Person::withoutGlobalScopes()
                 ->where('family_id', $family->id)
                 ->whereNotNull('death_date')
@@ -36,7 +35,6 @@ class DailyMemoryService
                 $blocks[] = "🕯 *Память*\n" . $person->full_name;
             }
 
-            // 🎂 День рождения
             $birthdays = Person::withoutGlobalScopes()
                 ->where('family_id', $family->id)
                 ->whereNotNull('birth_date')
@@ -47,7 +45,7 @@ class DailyMemoryService
             foreach ($birthdays as $person) {
 
                 $birthYear = Carbon::parse($person->birth_date)->year;
-                $age = Carbon::now()->year - $birthYear;
+                $age = now()->year - $birthYear;
 
                 if ($person->death_date) {
                     $blocks[] = "🎂 *День рождения*\n"
@@ -62,9 +60,10 @@ class DailyMemoryService
         }
 
         // ===============================
-        // 📜 Историческая календарная дата
+        // 2️⃣ Историческая дата (строго по числу)
         // ===============================
         $calendarFact = HistoricalFact::where('is_active', true)
+            ->whereNotNull('event_day')
             ->where('event_day', $today->day)
             ->where('event_month', $today->month)
             ->orderByDesc('priority')
@@ -84,32 +83,12 @@ class DailyMemoryService
         }
 
         // ===============================
-        // Если нет ничего — fallback
+        // 3️⃣ Если нет ничего — нейтральный ответ
         // ===============================
         if (empty($blocks)) {
-            return $this->getHistoricalFact();
+            return $header . "Сегодня в истории вашего рода нет значимых дат.";
         }
 
         return $header . implode("\n\n", $blocks);
-    }
-
-    // ===============================
-    // Fallback — обычный факт
-    // ===============================
-    protected function getHistoricalFact(): string
-    {
-        $fact = HistoricalFact::where('is_active', true)
-            ->orderByRaw('COALESCE(last_shown_at, "1970-01-01") ASC')
-            ->first();
-
-        if (!$fact) {
-            return "Сегодняшний день — ещё одна страница истории вашего рода.";
-        }
-
-        $fact->update([
-            'last_shown_at' => now(),
-        ]);
-
-        return "📜 *Исторический факт дня*\n\n" . $fact->content;
     }
 }
