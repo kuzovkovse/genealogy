@@ -11,3 +11,6 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('telegram:daily-birthdays')
     ->dailyAt('09:00');
+
+Schedule::command('telegram:daily-fact')
+    ->dailyAt('12:00');
