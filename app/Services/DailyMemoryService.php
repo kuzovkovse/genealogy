@@ -4,62 +4,90 @@ namespace App\Services;
 
 use App\Models\Person;
 use App\Models\HistoricalFact;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DailyMemoryService
 {
-    public function getTodayMessage(): string
+    public function getMessageForUser(User $user): string
     {
         $today = Carbon::today();
 
-        // 1️⃣ Проверяем годовщины смерти
-        $memoryPerson = Person::whereNotNull('death_date')
+        $family = $user->families()->first();
+
+        if (!$family) {
+            return $this->getHistoricalFact();
+        }
+
+        // =========================================
+        // 🥇 1. ГОДОВЩИНА СМЕРТИ
+        // =========================================
+        $deathPerson = Person::withoutGlobalScopes()
+            ->where('family_id', $family->id)
+            ->whereNotNull('death_date')
             ->whereMonth('death_date', $today->month)
             ->whereDay('death_date', $today->day)
             ->first();
 
-        if ($memoryPerson) {
-            return $this->formatDeathAnniversary($memoryPerson);
+        if ($deathPerson) {
+            return $this->formatDeathAnniversary($deathPerson);
         }
 
-        // 2️⃣ Если нет — берём исторический факт
+        // =========================================
+        // 🥈 2. ВОЕННЫЕ СОБЫТИЯ
+        // =========================================
+        $warPerson = Person::withoutGlobalScopes()
+            ->where('family_id', $family->id)
+            ->where('is_war_participant', true)
+            ->whereNotNull('birth_date')
+            ->whereMonth('birth_date', $today->month)
+            ->whereDay('birth_date', $today->day)
+            ->first();
+
+        if ($warPerson) {
+            return $this->formatWarMemory($warPerson);
+        }
+
+        // =========================================
+        // 🥉 3. ДЕНЬ РОЖДЕНИЯ
+        // =========================================
+        $birthdayPerson = Person::withoutGlobalScopes()
+            ->where('family_id', $family->id)
+            ->whereNotNull('birth_date')
+            ->whereMonth('birth_date', $today->month)
+            ->whereDay('birth_date', $today->day)
+            ->first();
+
+        if ($birthdayPerson) {
+            return $this->formatBirthday($birthdayPerson);
+        }
+
+        // =========================================
+        // 4️⃣ ИСТОРИЧЕСКИЙ ФАКТ
+        // =========================================
         return $this->getHistoricalFact();
     }
 
     protected function formatDeathAnniversary(Person $person): string
     {
-        $birthYear = $person->birth_date ? Carbon::parse($person->birth_date)->year : null;
+        $birthYear = $person->birth_date
+            ? Carbon::parse($person->birth_date)->year
+            : null;
+
         $deathYear = Carbon::parse($person->death_date)->year;
-
         $yearsAgo = Carbon::now()->year - $deathYear;
-
-        $name = trim($person->last_name . ' ' . $person->first_name . ' ' . $person->middle_name);
 
         $lifePeriod = $birthYear
             ? "({$birthYear}–{$deathYear})"
             : "({$deathYear})";
 
         return "🕯 Сегодня годовщина памяти\n\n"
-            . "{$name}\n"
-            . "{$lifePeriod}\n\n"
+            . $person->full_name . "\n"
+            . $lifePeriod . "\n\n"
             . "Прошло {$yearsAgo} лет.\n"
             . "Светлая память.";
     }
 
-    protected function getHistoricalFact(): string
+    protected function formatWarMemory(Person $person): string
     {
-        $fact = HistoricalFact::where('is_active', true)
-            ->orderByRaw('COALESCE(last_shown_at, "1970-01-01") asc')
-            ->first();
-
-        if (!$fact) {
-            return "Сегодняшний день — ещё одна страница истории вашего рода.";
-        }
-
-        $fact->update([
-            'last_shown_at' => now(),
-        ]);
-
-        return "📜 Исторический факт дня\n\n" . $fact->content;
-    }
-}
+        return "🎖 Сего

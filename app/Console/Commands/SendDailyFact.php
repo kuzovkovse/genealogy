@@ -13,13 +13,6 @@ class SendDailyFact extends Command
 
     public function handle()
     {
-        $message = app(DailyMemoryService::class)->getTodayMessage();
-
-        if (!$message) {
-            $this->info('No message to send.');
-            return;
-        }
-
         $users = User::whereNotNull('telegram_chat_id')->get();
 
         if ($users->isEmpty()) {
@@ -28,13 +21,17 @@ class SendDailyFact extends Command
         }
 
         foreach ($users as $user) {
+
+            $message = app(\App\Services\DailyMemoryService::class)
+                ->getMessageForUser($user);
+
             $this->sendMessage(
                 $user->telegram_chat_id,
                 $message
             );
         }
 
-        $this->info('Daily message sent.');
+        $this->info('Daily messages sent.');
     }
 
     private function sendMessage($chatId, $text)
