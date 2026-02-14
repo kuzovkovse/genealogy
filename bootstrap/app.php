@@ -10,6 +10,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+
     ->withMiddleware(function (Middleware $middleware) {
 
         $middleware->alias([
@@ -20,9 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'family.role'       => \App\Http\Middleware\CheckFamilyRole::class,
         ]);
 
-    })
-
-    ->withMiddleware(function (Middleware $middleware) {
         $middleware->validateCsrfTokens(except: [
             'telegram/webhook',
         ]);
@@ -30,10 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withCommands([
         \App\Console\Commands\SendDailyBirthdays::class,
-        \App\Console\Commands\SendDailyFact::class,
+        \App\Console\Commands\SendDailyFact::class, // если уже создана
     ])
 
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })
+
     ->create();

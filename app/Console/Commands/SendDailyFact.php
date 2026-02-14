@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\User;
+use App\Models\HistoricalFact;
 
 class SendDailyFact extends Command
 {
@@ -12,33 +13,30 @@ class SendDailyFact extends Command
 
     public function handle()
     {
-        $facts = $this->facts();
+        $fact = HistoricalFact::where('is_active', true)
+            ->orderByRaw('COALESCE(last_shown_at, "1970-01-01") ASC')
+            ->inRandomOrder()
+            ->first();
 
-        $fact = $facts[array_rand($facts)];
-
-        $users = User::whereNotNull('telegram_chat_id')->get();
-
-        if ($users->isEmpty()) {
-            $this->info('No Telegram users connected.');
+        if (!$fact) {
+            $this->info('No active historical facts.');
             return;
         }
 
+        $users = User::whereNotNull('telegram_chat_id')->get();
+
         foreach ($users as $user) {
-            $this->sendMessage($user->telegram_chat_id, $fact);
+            $this->sendMessage($user->telegram_chat_id,
+                "🏛 *Исторический факт дня*\n\n" .
+                $fact->content
+            );
         }
 
-        $this->info('Daily fact sent successfully.');
-    }
+        $fact->update([
+            'last_shown_at' => now(),
+        ]);
 
-    private function facts()
-    {
-        return [
-            "🏛 *Исторический факт дня*\n\nРодовые книги дворян велись официально государством.\n\nБерегите историю своей семьи.",
-            "📜 *Исторический факт дня*\n\nВ XIX веке в России существовали метрические книги — основной источник генеалогии.\n\nКаждая запись — это след судьбы.",
-            "⚔ *Исторический факт дня*\n\nМногие крестьяне получали фамилии только в конце XIX века.\n\nФамилия — это память о предках.",
-            "🏡 *Исторический факт дня*\n\nДо революции семьи часто жили несколькими поколениями под одной крышей.\n\nРод — это связь поколений.",
-            "📖 *Исторический факт дня*\n\nПервая всеобщая перепись населения в России прошла в 1897 году.\n\nСегодня вы можете вести свою собственную историю."
-        ];
+        $this->info('Daily fact sent.');
     }
 
     private function sendMessage($chatId, $text)
@@ -50,7 +48,7 @@ class SendDailyFact extends Command
             http_build_query([
                 'chat_id' => $chatId,
                 'text' => $text,
-                'parse_mode' => 'Markdown'
+                'parse_mode' => 'Markdown',
             ])
         );
     }
