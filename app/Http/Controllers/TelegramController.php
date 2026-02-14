@@ -24,7 +24,7 @@ class TelegramController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 1️⃣ Если пользователь НЕ подключён
+        | 1️⃣ Пользователь НЕ подключён
         |--------------------------------------------------------------------------
         */
         if (!$user) {
@@ -32,7 +32,9 @@ class TelegramController extends Controller
             if ($text === '/start' || $text === '/старт') {
                 $this->sendMessage(
                     $chatId,
-                    "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля."
+                    "👋 *Добро пожаловать в ПомниКорни!*\n\nВведите код подключения из вашего профиля.",
+                    null,
+                    true
                 );
                 return response()->json(['ok' => true]);
             }
@@ -40,17 +42,16 @@ class TelegramController extends Controller
             $userByCode = User::where('telegram_connect_code', $text)->first();
 
             if ($userByCode) {
-
                 $userByCode->telegram_chat_id = $chatId;
                 $userByCode->telegram_connect_code = null;
                 $userByCode->save();
 
                 $this->sendMessage(
                     $chatId,
-                    "✅ Telegram успешно подключён!\n\nВыберите действие:",
-                    $this->mainKeyboard()
+                    "✅ *Telegram успешно подключён!*\n\nВыберите действие:",
+                    $this->mainKeyboard(),
+                    true
                 );
-
             } else {
                 $this->sendMessage($chatId, "❌ Неверный код подключения.");
             }
@@ -60,7 +61,7 @@ class TelegramController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 2️⃣ Пользователь подключён — команды
+        | 2️⃣ Пользователь подключён
         |--------------------------------------------------------------------------
         */
 
@@ -70,8 +71,9 @@ class TelegramController extends Controller
             case '/старт':
                 $this->sendMessage(
                     $chatId,
-                    "👋 Вы подключены к ПомниКорни.\n\nВыберите действие:",
-                    $this->mainKeyboard()
+                    "👋 Вы подключены к *ПомниКорни*.\n\nВыберите действие:",
+                    $this->mainKeyboard(),
+                    true
                 );
                 break;
 
@@ -90,12 +92,22 @@ class TelegramController extends Controller
                 $this->sendMonthBirthdays($chatId);
                 break;
 
+            case '📊 статистика':
+            case '/статистика':
+                $this->sendFamilyStats($chatId);
+                break;
+
+            case '🏛 факт дня':
+            case '/факт':
+                $this->sendHistoricalFact($chatId);
+                break;
+
             case '⚙ настройки':
-            case '/настройки':
                 $this->sendMessage(
                     $chatId,
-                    "⚙ Настройки:\n\n/отключить — отвязать Telegram",
-                    $this->mainKeyboard()
+                    "⚙ *Настройки*\n\n/отключить — отвязать Telegram",
+                    $this->mainKeyboard(),
+                    true
                 );
                 break;
 
@@ -105,7 +117,7 @@ class TelegramController extends Controller
 
                 $this->sendMessage(
                     $chatId,
-                    "🔌 Telegram отключён от вашего аккаунта.\n\nЧтобы подключить снова — введите код."
+                    "🔌 Telegram отключён.\n\nЧтобы подключить снова — введите код."
                 );
                 break;
 
@@ -129,7 +141,6 @@ class TelegramController extends Controller
     private function sendTodayBirthdays($chatId)
     {
         $today = Carbon::today();
-
         $people = Person::whereNotNull('birth_date')->get();
 
         $todayBirthdays = $people->filter(function ($person) use ($today) {
@@ -143,17 +154,17 @@ class TelegramController extends Controller
             return;
         }
 
-        $message = "🎉 Сегодня день рождения:\n\n";
+        $message = "🎉 *Сегодня день рождения:*\n\n";
 
         foreach ($todayBirthdays as $person) {
             $birth = Carbon::parse($person->birth_date);
             $age   = $today->year - $birth->year;
 
-            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
         }
 
-        $this->sendMessage($chatId, $message, $this->mainKeyboard());
+        $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
     }
 
     /*
@@ -179,19 +190,19 @@ class TelegramController extends Controller
             return;
         }
 
-        $message = "📅 Ближайшие дни рождения:\n\n";
+        $message = "📅 *Ближайшие дни рождения:*\n\n";
 
         foreach ($upcoming as $person) {
             $birth = Carbon::parse($person->birth_date);
             $birthday = $birth->year($today->year);
             $age = $today->year - $birth->year;
 
-            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
             $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
         }
 
-        $this->sendMessage($chatId, $message, $this->mainKeyboard());
+        $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
     }
 
     /*
@@ -213,28 +224,78 @@ class TelegramController extends Controller
         });
 
         if ($upcoming->isEmpty()) {
-            $this->sendMessage($chatId, "📆 В ближайшие 30 дней дней рождения нет.", $this->mainKeyboard());
+            $this->sendMessage($chatId, "📆 В ближайший месяц дней рождения нет.", $this->mainKeyboard());
             return;
         }
 
-        $message = "📆 Дни рождения в ближайший месяц:\n\n";
+        $message = "📆 *Дни рождения в ближайший месяц:*\n\n";
 
         foreach ($upcoming as $person) {
             $birth = Carbon::parse($person->birth_date);
             $birthday = $birth->year($today->year);
             $age = $today->year - $birth->year;
 
-            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
             $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
         }
 
-        $this->sendMessage($chatId, $message, $this->mainKeyboard());
+        $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
     }
 
     /*
     |--------------------------------------------------------------------------
-    | 🔤 Склонение возраста
+    | 📊 Статистика рода
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendFamilyStats($chatId)
+    {
+        $total = Person::count();
+        $alive = Person::whereNull('death_date')->count();
+        $deceased = Person::whereNotNull('death_date')->count();
+        $men = Person::where('gender', 'male')->count();
+        $women = Person::where('gender', 'female')->count();
+
+        $message = "📊 *Статистика рода*\n\n";
+        $message .= "👥 Всего людей: *{$total}*\n";
+        $message .= "❤️ Живых: *{$alive}*\n";
+        $message .= "🕯 Ушедших: *{$deceased}*\n";
+        $message .= "👨 Мужчин: *{$men}*\n";
+        $message .= "👩 Женщин: *{$women}*";
+
+        $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🏛 Исторический факт дня
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendHistoricalFact($chatId)
+    {
+        $facts = [
+            "В древности родословные хранились устно и передавались поколениями.",
+            "В России метрические книги начали вести с XVIII века.",
+            "Самое длинное генеалогическое древо в мире насчитывает более 80 поколений.",
+            "Фамилии в России стали массово использоваться только к XIX веку.",
+            "Родовые книги дворян велись официально государством."
+        ];
+
+        $fact = $facts[array_rand($facts)];
+
+        $this->sendMessage(
+            $chatId,
+            "🏛 *Исторический факт дня*\n\n{$fact}",
+            $this->mainKeyboard(),
+            true
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🔤 Склонение
     |--------------------------------------------------------------------------
     */
 
@@ -261,11 +322,14 @@ class TelegramController extends Controller
                 ],
                 [
                     ['text' => '📆 Месяц'],
-                    ['text' => '⚙ Настройки']
+                    ['text' => '📊 Статистика'],
+                ],
+                [
+                    ['text' => '🏛 Факт дня'],
+                    ['text' => '⚙ Настройки'],
                 ]
             ],
             'resize_keyboard' => true,
-            'persistent' => true
         ];
     }
 
@@ -275,7 +339,7 @@ class TelegramController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    private function sendMessage($chatId, $text, $keyboard = null)
+    private function sendMessage($chatId, $text, $keyboard = null, $markdown = false)
     {
         $token = config('services.telegram.bot_token');
 
@@ -286,6 +350,10 @@ class TelegramController extends Controller
 
         if ($keyboard) {
             $params['reply_markup'] = json_encode($keyboard);
+        }
+
+        if ($markdown) {
+            $params['parse_mode'] = 'Markdown';
         }
 
         file_get_contents(
