@@ -18,44 +18,60 @@ class DailyMemoryService
             return $this->getHistoricalFact();
         }
 
-        // 🥇 1. Годовщина смерти
-        $deathPerson = Person::withoutGlobalScopes()
+        $blocks = [];
+
+        // =========================================
+        // 🕯 ГОДОВЩИНЫ СМЕРТИ
+        // =========================================
+        $deathPersons = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->whereNotNull('death_date')
             ->whereMonth('death_date', $today->month)
             ->whereDay('death_date', $today->day)
-            ->first();
+            ->get();
 
-        if ($deathPerson) {
-            return $this->formatDeathAnniversary($deathPerson);
+        foreach ($deathPersons as $person) {
+            $blocks[] = $this->formatDeathAnniversary($person);
         }
 
-        // 🥈 2. Военные участники (если ДР совпадает)
-        $warPerson = Person::withoutGlobalScopes()
+        // =========================================
+        // 🎖 ВОЕННЫЕ УЧАСТНИКИ (по ДР)
+        // =========================================
+        $warPersons = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->where('is_war_participant', true)
             ->whereNotNull('birth_date')
             ->whereMonth('birth_date', $today->month)
             ->whereDay('birth_date', $today->day)
-            ->first();
+            ->get();
 
-        if ($warPerson) {
-            return $this->formatWarMemory($warPerson);
+        foreach ($warPersons as $person) {
+            $blocks[] = $this->formatWarMemory($person);
         }
 
-        // 🥉 3. День рождения
-        $birthdayPerson = Person::withoutGlobalScopes()
+        // =========================================
+        // 🎂 ДНИ РОЖДЕНИЯ
+        // =========================================
+        $birthdayPersons = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->whereNotNull('birth_date')
             ->whereMonth('birth_date', $today->month)
             ->whereDay('birth_date', $today->day)
-            ->first();
+            ->get();
 
-        if ($birthdayPerson) {
-            return $this->formatBirthday($birthdayPerson);
+        foreach ($birthdayPersons as $person) {
+            $blocks[] = $this->formatBirthday($person);
         }
 
-        // 4️⃣ Исторический факт
+        // =========================================
+        // ЕСЛИ ЕСТЬ СОБЫТИЯ — ДЕЛАЕМ ДАЙДЖЕСТ
+        // =========================================
+        if (!empty($blocks)) {
+            return "📖 Сегодня в истории вашего рода:\n\n"
+                . implode("\n\n", $blocks);
+        }
+
+        // ИНАЧЕ — ИСТОРИЧЕСКИЙ ФАКТ
         return $this->getHistoricalFact();
     }
 
@@ -72,19 +88,17 @@ class DailyMemoryService
             ? "({$birthYear}–{$deathYear})"
             : "({$deathYear})";
 
-        return "🕯 Сегодня годовщина памяти\n\n"
+        return "🕯 Годовщина памяти\n"
             . $person->full_name . "\n"
-            . $lifePeriod . "\n\n"
-            . "Прошло {$yearsAgo} лет.\n"
-            . "Светлая память.";
+            . $lifePeriod . "\n"
+            . "Прошло {$yearsAgo} лет.";
     }
 
     protected function formatWarMemory(Person $person): string
     {
-        return "🎖 Памятная дата участника войны\n\n"
-            . $person->full_name . "\n\n"
-            . "Участник Великой Отечественной войны.\n"
-            . "Помним и гордимся.";
+        return "🎖 Памятная дата участника войны\n"
+            . $person->full_name . "\n"
+            . "Участник Великой Отечественной войны.";
     }
 
     protected function formatBirthday(Person $person): string
@@ -93,13 +107,13 @@ class DailyMemoryService
         $age = Carbon::now()->year - $birthYear;
 
         if ($person->death_date) {
-            return "🎂 Сегодня день рождения\n\n"
+            return "🎂 День рождения\n"
                 . $person->full_name . "\n"
                 . "Родился в {$birthYear} году.\n"
                 . "Исполнилось бы {$age} лет.";
         }
 
-        return "🎂 Сегодня день рождения\n\n"
+        return "🎂 День рождения\n"
             . $person->full_name . "\n"
             . "Исполняется {$age} лет.";
     }
