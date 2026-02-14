@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withCommands([
         \App\Console\Commands\SendDailyBirthdays::class,
+        \App\Console\Commands\SendDailyFact::class,
     ])
 
     ->withExceptions(function (Exceptions $exceptions): void {
