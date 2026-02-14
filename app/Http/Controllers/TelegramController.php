@@ -30,13 +30,13 @@ class TelegramController extends Controller
         if (!$user) {
 
             if ($text === '/start' || $text === '/старт') {
-                $this->sendMessage($chatId,
+                $this->sendMessage(
+                    $chatId,
                     "👋 Добро пожаловать в ПомниКорни!\n\nВведите код подключения из вашего профиля."
                 );
                 return response()->json(['ok' => true]);
             }
 
-            // Пытаемся подключить по коду
             $userByCode = User::where('telegram_connect_code', $text)->first();
 
             if ($userByCode) {
@@ -60,7 +60,7 @@ class TelegramController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 2️⃣ Пользователь подключён — обработка команд
+        | 2️⃣ Пользователь подключён — команды
         |--------------------------------------------------------------------------
         */
 
@@ -83,6 +83,11 @@ class TelegramController extends Controller
             case '📅 неделя':
             case '/неделя':
                 $this->sendWeekBirthdays($chatId);
+                break;
+
+            case '📆 месяц':
+            case '/месяц':
+                $this->sendMonthBirthdays($chatId);
                 break;
 
             case '⚙ настройки':
@@ -191,6 +196,44 @@ class TelegramController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | 📆 Месяц
+    |--------------------------------------------------------------------------
+    */
+
+    private function sendMonthBirthdays($chatId)
+    {
+        $today = Carbon::today();
+        $in30  = Carbon::today()->addDays(30);
+
+        $people = Person::whereNotNull('birth_date')->get();
+
+        $upcoming = $people->filter(function ($person) use ($today, $in30) {
+            $birth = Carbon::parse($person->birth_date)->year($today->year);
+            return $birth->between($today, $in30);
+        });
+
+        if ($upcoming->isEmpty()) {
+            $this->sendMessage($chatId, "📆 В ближайшие 30 дней дней рождения нет.", $this->mainKeyboard());
+            return;
+        }
+
+        $message = "📆 Дни рождения в ближайший месяц:\n\n";
+
+        foreach ($upcoming as $person) {
+            $birth = Carbon::parse($person->birth_date);
+            $birthday = $birth->year($today->year);
+            $age = $today->year - $birth->year;
+
+            $message .= "• {$person->first_name} {$person->last_name}\n";
+            $message .= "  📅 " . $birthday->format('d.m') . "\n";
+            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+        }
+
+        $this->sendMessage($chatId, $message, $this->mainKeyboard());
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | 🔤 Склонение возраста
     |--------------------------------------------------------------------------
     */
@@ -217,6 +260,7 @@ class TelegramController extends Controller
                     ['text' => '📅 Неделя'],
                 ],
                 [
+                    ['text' => '📆 Месяц'],
                     ['text' => '⚙ Настройки']
                 ]
             ],
