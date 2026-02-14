@@ -107,7 +107,7 @@ class DailyMemoryService
     protected function getHistoricalFact(): string
     {
         $fact = HistoricalFact::where('is_active', true)
-            ->orderByRaw('COALESCE(last_shown_at, \"1970-01-01\") ASC')
+            ->orderByRaw('COALESCE(last_shown_at, "1970-01-01") ASC')
             ->first();
 
         if (!$fact) {
