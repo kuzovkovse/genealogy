@@ -13,4 +13,4 @@ Schedule::command('telegram:daily-birthdays')
     ->dailyAt('09:00');
 
 Schedule::command('telegram:daily-fact')
-    ->dailyAt('13:25');
+    ->dailyAt('12:00');
