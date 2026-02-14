@@ -12,16 +12,13 @@ class DailyMemoryService
     public function getMessageForUser(User $user): string
     {
         $today = Carbon::today();
-
         $family = $user->families()->first();
 
         if (!$family) {
             return $this->getHistoricalFact();
         }
 
-        // =========================================
-        // 🥇 1. ГОДОВЩИНА СМЕРТИ
-        // =========================================
+        // 🥇 1. Годовщина смерти
         $deathPerson = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->whereNotNull('death_date')
@@ -33,9 +30,7 @@ class DailyMemoryService
             return $this->formatDeathAnniversary($deathPerson);
         }
 
-        // =========================================
-        // 🥈 2. ВОЕННЫЕ СОБЫТИЯ
-        // =========================================
+        // 🥈 2. Военные участники (если ДР совпадает)
         $warPerson = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->where('is_war_participant', true)
@@ -48,9 +43,7 @@ class DailyMemoryService
             return $this->formatWarMemory($warPerson);
         }
 
-        // =========================================
-        // 🥉 3. ДЕНЬ РОЖДЕНИЯ
-        // =========================================
+        // 🥉 3. День рождения
         $birthdayPerson = Person::withoutGlobalScopes()
             ->where('family_id', $family->id)
             ->whereNotNull('birth_date')
@@ -62,9 +55,7 @@ class DailyMemoryService
             return $this->formatBirthday($birthdayPerson);
         }
 
-        // =========================================
-        // 4️⃣ ИСТОРИЧЕСКИЙ ФАКТ
-        // =========================================
+        // 4️⃣ Исторический факт
         return $this->getHistoricalFact();
     }
 
@@ -90,4 +81,43 @@ class DailyMemoryService
 
     protected function formatWarMemory(Person $person): string
     {
-        return "🎖 Сего
+        return "🎖 Памятная дата участника войны\n\n"
+            . $person->full_name . "\n\n"
+            . "Участник Великой Отечественной войны.\n"
+            . "Помним и гордимся.";
+    }
+
+    protected function formatBirthday(Person $person): string
+    {
+        $birthYear = Carbon::parse($person->birth_date)->year;
+        $age = Carbon::now()->year - $birthYear;
+
+        if ($person->death_date) {
+            return "🎂 Сегодня день рождения\n\n"
+                . $person->full_name . "\n"
+                . "Родился в {$birthYear} году.\n"
+                . "Исполнилось бы {$age} лет.";
+        }
+
+        return "🎂 Сегодня день рождения\n\n"
+            . $person->full_name . "\n"
+            . "Исполняется {$age} лет.";
+    }
+
+    protected function getHistoricalFact(): string
+    {
+        $fact = HistoricalFact::where('is_active', true)
+            ->orderByRaw('COALESCE(last_shown_at, \"1970-01-01\") ASC')
+            ->first();
+
+        if (!$fact) {
+            return "Сегодняшний день — ещё одна страница истории вашего рода.";
+        }
+
+        $fact->update([
+            'last_shown_at' => now(),
+        ]);
+
+        return "📜 Исторический факт дня\n\n" . $fact->content;
+    }
+}
