@@ -4,39 +4,37 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\User;
-use App\Models\HistoricalFact;
+use App\Services\DailyMemoryService;
 
 class SendDailyFact extends Command
 {
     protected $signature = 'telegram:daily-fact';
-    protected $description = 'Send daily historical fact to Telegram users';
+    protected $description = 'Send daily memory or historical fact to Telegram users';
 
     public function handle()
     {
-        $fact = HistoricalFact::where('is_active', true)
-            ->orderByRaw('COALESCE(last_shown_at, "1970-01-01") ASC')
-            ->inRandomOrder()
-            ->first();
+        $message = app(DailyMemoryService::class)->getTodayMessage();
 
-        if (!$fact) {
-            $this->info('No active historical facts.');
+        if (!$message) {
+            $this->info('No message to send.');
             return;
         }
 
         $users = User::whereNotNull('telegram_chat_id')->get();
 
+        if ($users->isEmpty()) {
+            $this->info('No users with Telegram connected.');
+            return;
+        }
+
         foreach ($users as $user) {
-            $this->sendMessage($user->telegram_chat_id,
-                "🏛 *Исторический факт дня*\n\n" .
-                $fact->content
+            $this->sendMessage(
+                $user->telegram_chat_id,
+                $message
             );
         }
 
-        $fact->update([
-            'last_shown_at' => now(),
-        ]);
-
-        $this->info('Daily fact sent.');
+        $this->info('Daily message sent.');
     }
 
     private function sendMessage($chatId, $text)
@@ -46,9 +44,9 @@ class SendDailyFact extends Command
         file_get_contents(
             "https://api.telegram.org/bot{$token}/sendMessage?" .
             http_build_query([
-                'chat_id' => $chatId,
-                'text' => $text,
-                'parse_mode' => 'Markdown',
+                'chat_id'   => $chatId,
+                'text'      => $text,
+                'parse_mode'=> 'Markdown',
             ])
         );
     }
