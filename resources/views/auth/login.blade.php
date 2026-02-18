@@ -1,100 +1,65 @@
-<x-guest-layout>
+@extends('layouts.guest')
 
-    <div class="login-title">
-        Вход в аккаунт
-    </div>
-
-    <div class="login-subtitle">
-        Войдите, чтобы продолжить работу<br>
-        с семейным архивом
-    </div>
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+@section('content')
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        {{-- Email --}}
-        <div class="mb-4">
-            <x-input-label for="email" value="Email" />
-            <x-text-input
-                id="email"
-                class="block mt-1 w-full"
-                type="email"
-                name="email"
-                :value="old('email')"
-                required
-                autofocus
-            />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email"
+                   name="email"
+                   value="{{ old('email') }}"
+                   class="form-control @error('email') is-invalid @enderror"
+                   required
+                   autofocus>
+
+            @error('email')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
 
-        {{-- Password --}}
-        <div class="mb-4">
-            <x-input-label for="password" value="Пароль" />
-            <x-text-input
-                id="password"
-                class="block mt-1 w-full"
-                type="password"
-                name="password"
-                required
-            />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div class="mb-3">
+            <label class="form-label">Пароль</label>
+            <input type="password"
+                   name="password"
+                   class="form-control @error('password') is-invalid @enderror"
+                   required>
+
+            @error('password')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
 
-        {{-- Remember + Forgot --}}
-        <div class="flex items-center justify-between mb-6 text-sm">
-            <label class="flex items-center">
-                <input
-                    type="checkbox"
-                    name="remember"
-                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                >
-                <span class="ml-2 text-gray-600">Запомнить меня</span>
+        <div class="mb-3">
+            <label class="form-check">
+                <input type="checkbox" name="remember" class="form-check-input">
+                <span class="form-check-label">Запомнить меня</span>
             </label>
+        </div>
 
-            @if (Route::has('password.request'))
-                <a
-                    href="{{ route('password.request') }}"
-                    class="text-gray-500 hover:text-gray-800 transition"
-                >
+        <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100">
+                Войти
+            </button>
+        </div>
+
+        @if (Route::has('password.request'))
+            <div class="text-center mt-3">
+                <a href="{{ route('password.request') }}" class="text-muted">
                     Забыли пароль?
                 </a>
-            @endif
-        </div>
+            </div>
+        @endif
 
-        {{-- ✅ КНОПКА ВХОДА (исправленная) --}}
-        <button
-            type="submit"
-            style="
-                background:#1f2937;
-                color:#ffffff;
-                width:100%;
-                padding:14px;
-                border-radius:14px;
-                font-weight:600;
-                letter-spacing:.02em;
-                box-shadow:0 10px 25px rgba(0,0,0,.15);
-            "
-            onmouseover="this.style.background='#111827'"
-            onmouseout="this.style.background='#1f2937'"
-        >
-            Войти
-        </button>
-
-        {{-- REGISTER --}}
         @if (Route::has('register'))
-            <div class="text-center mt-6 text-sm text-gray-600">
+            <div class="text-center mt-2">
                 Нет аккаунта?
-                <a
-                    href="{{ route('register') }}"
-                    class="font-medium text-gray-900 hover:underline"
-                >
+                <a href="{{ route('register') }}">
                     Зарегистрироваться
                 </a>
             </div>
         @endif
     </form>
 
-</x-guest-layout>
+@endsection
