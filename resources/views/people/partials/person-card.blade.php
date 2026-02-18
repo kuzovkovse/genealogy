@@ -59,18 +59,27 @@
             }
 
             .tree-btn {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                z-index: 3;
-                width: 34px;
-                height: 34px;
+                width: 36px;
+                height: 36px;
                 border-radius: 50%;
                 border: none;
+
                 background: rgba(255,255,255,.95);
-                cursor: pointer;
-                font-size: 18px;
+                color: #374151;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
                 box-shadow: 0 4px 12px rgba(0,0,0,.15);
+                transition: all .2s ease;
+                cursor: pointer;
+            }
+
+            .tree-btn:hover {
+                background: #0d6efd;
+                color: white;
+                transform: scale(1.05);
             }
 
             .badges {
@@ -147,64 +156,100 @@
     $isRoot = isset($rootId) && $person->id === $rootId;
 @endphp
 
-<div class="person-card
-    {{ $person->death_date ? 'dead' : 'alive' }}
-    {{ $isRoot ? 'root-person' : '' }}"
+
+<div class="card person-card h-100 position-relative
+    {{ $person->death_date ? 'opacity-75' : '' }}
+    {{ $isRoot ? 'border-warning' : '' }}"
      data-name="{{ mb_strtolower($fullName) }}"
      data-gender="{{ $person->gender }}"
      data-war="{{ $person->is_war_participant ? '1' : '0' }}"
      data-life="{{ $person->death_date ? 'dead' : 'alive' }}">
 
-    {{-- Ссылка --}}
-    <a href="{{ route('people.show', $person) }}" class="person-link"></a>
+    {{-- CLICKABLE OVERLAY --}}
+    <a href="{{ route('people.show', $person) }}"
+       class="stretched-link"></a>
 
-    {{-- Кнопка дерева --}}
-    <button class="tree-btn"
-            onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'">
-        🌳
-    </button>
-
-    {{-- Бейджи --}}
-    <div class="badges">
+    {{-- BADGES --}}
+    <div class="position-absolute top-0 start-0 p-2 d-flex flex-column gap-1" style="z-index: 2">
 
         @if($isRoot)
-            <div class="badge badge-root">👑 Родоначальник</div>
+            <span class="badge bg-warning-lt text-warning">
+                👑 Родоначальник
+            </span>
         @endif
 
         @if($person->is_war_participant)
-            <div class="badge badge-war">🎖 ВОВ</div>
+            <span class="badge bg-orange-lt text-orange">
+                🎖 ВОВ
+            </span>
         @endif
 
         @if($person->death_date)
-            <div class="badge badge-dead">🕯 Умер</div>
+            <span class="badge bg-secondary-lt text-secondary">
+                🕯 Умер
+            </span>
         @else
-            <div class="badge badge-alive">❤️ Жив</div>
+            <span class="badge bg-green-lt text-green">
+                ❤️ Жив
+            </span>
         @endif
 
     </div>
 
-    {{-- Фото --}}
-    <div class="person-photo">
-        <img src="{{ $person->photo
-            ? asset('storage/'.$person->photo)
-            : asset('storage/people/placepeople.png') }}">
+    {{-- TREE BUTTON --}}
+    <div class="position-absolute top-0 end-0 p-2" style="z-index: 3">
+        <button type="button"
+                class="tree-btn"
+                data-bs-toggle="tooltip"
+                data-bs-placement="left"
+                title="Открыть дерево"
+                onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'">
+
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="16" height="16"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+                <circle cx="12" cy="5" r="2"/>
+                <circle cx="6" cy="19" r="2"/>
+                <circle cx="18" cy="19" r="2"/>
+                <path d="M12 7v4"/>
+                <path d="M6 17l6-6 6 6"/>
+            </svg>
+
+        </button>
     </div>
 
-    {{-- Имя --}}
-    <div class="person-name">
-        {{ $fullName }}
-    </div>
+    {{-- IMAGE --}}
+    <img src="{{ $person->photo
+        ? asset('storage/'.$person->photo)
+        : asset('storage/people/placepeople.png') }}"
+         class="card-img-top"
+         style="height: 220px; object-fit: cover;
+                {{ $person->death_date ? 'filter: grayscale(60%);' : '' }}">
 
-    {{-- Годы жизни --}}
-    @if($lifeLine)
-        <div class="person-life">
-            {{ $lifeLine }}
-            @if($person->life_phrase)
-                <div class="person-phrase">
-                    {{ $person->life_phrase }}
-                </div>
-            @endif
-        </div>
-    @endif
+    {{-- BODY --}}
+    <div class="card-body text-center">
+
+        <h4 class="card-title mb-1">
+            {{ $fullName }}
+        </h4>
+
+        @if($lifeLine)
+            <div class="text-muted small">
+                {{ $lifeLine }}
+            </div>
+        @endif
+
+        @if($person->life_phrase)
+            <div class="mt-2 text-muted small fst-italic">
+                {{ $person->life_phrase }}
+            </div>
+        @endif
+
+    </div>
 
 </div>
