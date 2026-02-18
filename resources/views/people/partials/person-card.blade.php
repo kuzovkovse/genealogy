@@ -158,7 +158,6 @@
 
 
 <div class="card person-card h-100 position-relative
-    {{ $person->death_date ? 'opacity-75' : '' }}
     {{ $isRoot ? 'border-warning' : '' }}"
      data-name="{{ mb_strtolower($fullName) }}"
      data-gender="{{ $person->gender }}"
@@ -228,8 +227,7 @@
         ? asset('storage/'.$person->photo)
         : asset('storage/people/placepeople.png') }}"
          class="card-img-top"
-         style="height: 220px; object-fit: cover;
-                {{ $person->death_date ? 'filter: grayscale(60%);' : '' }}">
+         style="height: 220px; object-fit: cover;">
 
     {{-- BODY --}}
     <div class="card-body text-center">
