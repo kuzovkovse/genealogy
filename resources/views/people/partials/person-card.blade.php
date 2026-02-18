@@ -125,6 +125,36 @@
                 border: 2px solid #f59e0b !important;
                 box-shadow: 0 0 0 3px rgba(245,158,11,.25);
             }
+
+            .card.person-card {
+                transition: transform .25s ease, box-shadow .25s ease;
+            }
+
+            .card.person-card:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 25px 50px rgba(0,0,0,.12);
+            }
+
+            /* Лёгкое увеличение фото */
+            .card.person-card .card-img-top {
+                transition: transform .3s ease;
+            }
+
+            .card.person-card:hover .card-img-top {
+                transform: scale(1.04);
+            }
+
+            .generation-content {
+                overflow: hidden;
+                transition: all .3s ease;
+            }
+
+            .generation-content.collapsed {
+                opacity: 0;
+                transform: translateY(-5px);
+                height: 0;
+            }
+
         </style>
     @endpush
 @endonce
@@ -227,7 +257,8 @@
         ? asset('storage/'.$person->photo)
         : asset('storage/people/placepeople.png') }}"
          class="card-img-top"
-         style="height: 220px; object-fit: cover;">
+         style="height: 220px; object-fit: cover;
+                {{ $person->death_date ? 'filter: grayscale(60%);' : '' }}">
 
     {{-- BODY --}}
     <div class="card-body text-center">

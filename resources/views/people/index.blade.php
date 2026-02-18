@@ -262,7 +262,7 @@
                         </div>
                         <div class="generation-content"
                              id="generation-content-{{ $level }}">
-                            <div class="people-grid">
+                            <div class="people-grid {{ $mode === 'list' ? 'compact-mode' : '' }}">
                                 @foreach($people as $person)
                                     @include('people.partials.person-card')
                                 @endforeach
@@ -279,7 +279,7 @@
         {{-- ================= LIST MODE ================= --}}
         @if($mode === 'list')
 
-            <div class="people-grid">
+            <div class="people-grid {{ $mode === 'list' ? 'compact-mode' : '' }}">
                 @foreach($peopleList as $person)
                     @include('people.partials.person-card')
                 @endforeach
