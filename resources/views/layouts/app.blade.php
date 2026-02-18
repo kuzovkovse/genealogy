@@ -2,24 +2,30 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>@yield('title', 'Genealogy')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- Tabler --}}
+    <title>@yield('title', 'ПомниКорни')</title>
+
+    {{-- Tabler CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
+
+    {{-- GLightbox --}}
+    <link href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
 
     @stack('styles')
 </head>
+
 <body>
 
 <div class="page">
 
-    {{-- NAVIGATION --}}
+    {{-- HEADER --}}
     @include('layouts.navigation')
 
     <div class="page-wrapper">
 
-        {{-- Flash --}}
+        {{-- FLASH --}}
         @if(session('success'))
             <div class="container-xl mt-3">
                 <div class="alert alert-success">
@@ -36,19 +42,36 @@
             </div>
         @endif
 
-        {{-- CONTENT --}}
-        @hasSection('fullscreen')
-            @yield('content')
-        @else
-            <div class="container-xl py-4">
+        {{-- PAGE BODY --}}
+        <div class="page-body py-4">
+
+            @if(View::hasSection('fullscreen'))
+                {{-- Полноэкранный режим (например дерево) --}}
                 @yield('content')
-            </div>
-        @endif
+            @else
+                <div class="container-xl">
+                    @yield('content')
+                </div>
+            @endif
+
+        </div>
 
     </div>
 </div>
 
+{{-- Tabler JS --}}
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        GLightbox({
+            selector: '.glightbox',
+            touchNavigation: true,
+            loop: true,
+            zoomable: true
+        });
+    });
+</script>
 
 @stack('scripts')
 
@@ -63,7 +86,8 @@
         font-size:12px;
         border-radius:6px;
         z-index:9999;
-        font-weight:bold;">
+        font-weight:bold;
+    ">
         DEV
     </div>
 @endif
