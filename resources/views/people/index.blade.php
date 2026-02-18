@@ -2,11 +2,285 @@
 
 @section('title', 'Люди')
 
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('css/people.css') }}">
-@endpush
-
 @section('content')
+
+    {{-- ================= STYLES ================= --}}
+    <style>
+        .generation-block { margin-bottom: 48px; }
+
+        .generation-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .people-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .person-card {
+            position: relative;
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: box-shadow .2s ease, transform .2s ease;
+        }
+
+        .person-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,.08);
+            transform: translateY(-3px);
+        }
+
+        .person-card.alive { border-color: #86efac; }
+        .person-card.dead  { border-color: #d1d5db; filter: grayscale(35%) contrast(.95); }
+
+        .person-photo {
+            width: 100%;
+            height: 220px;
+            background: #f3f4f6;
+        }
+
+        .person-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .person-name {
+            padding: 12px 12px 4px;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .person-life {
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+            padding-bottom: 10px;
+        }
+
+        .person-link {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .tree-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 3;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,.95);
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+
+        .badges {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #111827; /* 👈 тёмный текст */
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
+            white-space: nowrap;
+        }
+
+        .badge-war {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .badge-alive {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .badge-dead {
+            background: #f3f4f6;
+            color: #7f1d1d;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,.15);
+            white-space: nowrap;
+        }
+
+        .badge-war {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .badge-alive {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .badge-dead {
+            background: #f3f4f6;
+            color: #7f1d1d;
+        }
+
+        .badge-root {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* ===== РОДОНАЧАЛЬНИК ===== */
+
+        .root-person {
+            border: 2px solid #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245,158,11,.25);
+        }
+
+        /* =========================
+        🧬 ВЕРТИКАЛЬНАЯ ЛИНИЯ РОДА
+        ========================= */
+
+        .generations-wrapper {
+            position: relative;
+            padding-left: 40px;
+            z-index: 1;
+        }
+
+        .generations-wrapper::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(
+                to bottom,
+                rgba(139,94,60,0.2),
+                rgba(139,94,60,0.4),
+                rgba(139,94,60,0.2)
+            );
+        }
+
+        /* =========================
+           📚 ПОКОЛЕНИЯ
+        ========================= */
+
+        .generation-block {
+            position: relative;
+            margin-bottom: 60px;
+            padding-left: 20px;
+        }
+
+        .generation-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+
+        /* эффект глубины */
+        .generation-block[data-level="1"] { margin-top: 0; }
+        .generation-block[data-level="2"] { margin-left: 10px; }
+        .generation-block[data-level="3"] { margin-left: 20px; }
+        .generation-block[data-level="4"] { margin-left: 30px; }
+        .generation-block[data-level="5"] { margin-left: 40px; }
+
+        /* мягкий фон для старших поколений */
+        .generation-block[data-level="1"] {
+            background: linear-gradient(to right, #faf7f2, transparent);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        /* I поколение крупнее */
+        .generation-block[data-level="1"] .person-card {
+            transform: scale(1.05);
+        }
+
+        /* скрываемый контент */
+        .generation-content.collapsed {
+            display: none;
+        }
+
+        /* якорная навигация */
+        .generation-nav {
+            position: sticky;
+            top: 70px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.08);
+
+            z-index: 1000;
+        }
+        /* ================= MODE ANIMATION ================= */
+
+        .mode-container {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .mode-exit {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .person-phrase {
+            text-align: center;
+            font-size: 13px;
+            font-style: italic;
+            color: #6b7280;
+            padding-bottom: 12px;
+        }
+        .depth-phrase {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+        .generation-connection {
+            font-size: 13px;
+            font-style: italic;
+            color: #6b7280;
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+
+
+    </style>
+
+
 
     {{-- ================= HEADER ================= --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
