@@ -3,52 +3,52 @@
 <head>
     <meta charset="utf-8">
     <title>@yield('title', 'Genealogy')</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- Bootstrap --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    {{-- Tabler --}}
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
 
-    {{-- GLightbox --}}
-    <link href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" rel="stylesheet">
-   <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
-
-
-   @stack('styles')
+    @stack('styles')
 </head>
-<body class="bg-light">
+<body>
 
-{{-- NAV --}}
-@include('layouts.navigation')
+<div class="page">
 
-{{-- flash --}}
-@if(session('success'))
-    <div class="container mt-3">
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    </div>
-@endif
+    {{-- NAVIGATION --}}
+    @include('layouts.navigation')
 
-@if(session('error'))
-    <div class="container mt-3">
-        <div class="alert alert-danger">
-            {{ session('error') }}
-        </div>
-    </div>
-@endif
+    <div class="page-wrapper">
 
-{{-- CONTENT --}}
-<main class="py-4" id="app-main">
-    @hasSection('fullscreen')
-        @yield('content')
-    @else
-        <div class="container">
+        {{-- Flash --}}
+        @if(session('success'))
+            <div class="container-xl mt-3">
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="container-xl mt-3">
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            </div>
+        @endif
+
+        {{-- CONTENT --}}
+        @hasSection('fullscreen')
             @yield('content')
-        </div>
-    @endif
-</main>
+        @else
+            <div class="container-xl py-4">
+                @yield('content')
+            </div>
+        @endif
 
-{{-- Bootstrap JS --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
 
 @stack('scripts')
 
@@ -63,28 +63,10 @@
         font-size:12px;
         border-radius:6px;
         z-index:9999;
-        font-weight:bold;
-    ">
+        font-weight:bold;">
         DEV
     </div>
 @endif
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const lightbox = GLightbox({
-            selector: '.glightbox',
-            touchNavigation: true,
-            loop: true,
-            zoomable: true,
-            draggable: true,
-            preload: true,
-            autoplayVideos: false,
-            moreText: 'Подробнее',
-            slideEffect: 'zoom',
-            openEffect: 'zoom',
-            closeEffect: 'fade',
-        });
-    });
-</script>
 </body>
 </html>
