@@ -158,7 +158,7 @@ class TelegramController extends Controller
 
         foreach ($todayBirthdays as $person) {
             $birth = Carbon::parse($person->birth_date);
-            $age   = $today->year - $birth->year;
+            $age = $this->calculateTurningAge($person);
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
@@ -195,7 +195,7 @@ class TelegramController extends Controller
         foreach ($upcoming as $person) {
             $birth = Carbon::parse($person->birth_date);
             $birthday = $birth->year($today->year);
-            $age = $today->year - $birth->year;
+            $age = $this->calculateTurningAge($person);
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
@@ -233,7 +233,7 @@ class TelegramController extends Controller
         foreach ($upcoming as $person) {
             $birth = Carbon::parse($person->birth_date);
             $birthday = $birth->year($today->year);
-            $age = $today->year - $birth->year;
+            $age = $this->calculateTurningAge($person);
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
@@ -338,6 +338,27 @@ class TelegramController extends Controller
     | 📤 Отправка сообщения
     |--------------------------------------------------------------------------
     */
+
+    private function calculateTurningAge(Person $person)
+    {
+        if (!$person->birth_date) {
+            return null;
+        }
+
+        $birth = Carbon::parse($person->birth_date);
+        $today = Carbon::today();
+
+        // День рождения в этом году
+        $nextBirthday = $birth->copy()->year($today->year);
+
+        // Если уже прошёл — следующий год
+        if ($nextBirthday->lt($today)) {
+            $nextBirthday->addYear();
+        }
+
+        // Сколько исполнится
+        return $nextBirthday->year - $birth->year;
+    }
 
     private function sendMessage($chatId, $text, $keyboard = null, $markdown = false)
     {
