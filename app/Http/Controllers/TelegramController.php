@@ -154,14 +154,29 @@ class TelegramController extends Controller
             return;
         }
 
-        $message = "🎉 *Сегодня день рождения:*\n\n";
+        // Определяем тип списка
+        $allAlive = $todayBirthdays->every(fn($p) => !$p->death_date);
+        $allDead  = $todayBirthdays->every(fn($p) => $p->death_date);
+
+        if ($allAlive) {
+            $message = "🎉 *Сегодня день рождения:*\n\n";
+        } elseif ($allDead) {
+            $message = "🕯 *Сегодня памятная дата:*\n\n";
+        } else {
+            $message = "🎂 *Сегодня памятные даты:*\n\n";
+        }
 
         foreach ($todayBirthdays as $person) {
-            $birth = Carbon::parse($person->birth_date);
+
             $age = $this->calculateTurningAge($person);
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
-            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+
+            if ($person->death_date) {
+                $message .= "  🕯 Исполнилось бы {$age} " . $this->plural($age) . "\n\n";
+            } else {
+                $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+            }
         }
 
         $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
