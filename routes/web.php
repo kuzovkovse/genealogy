@@ -20,6 +20,7 @@ use App\Http\Controllers\FamilyUserController;
 use App\Http\Controllers\FamilyOwnershipController;
 use App\Http\Controllers\FamilyHistoryController;
 use App\Observers\PersonObserver;
+use App\Http\Controllers\MemorialCandleController;
 
 
 /*
@@ -205,8 +206,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | 🕯 Свеча памяти — НЕ ТРОГАЕМ
     |--------------------------------------------------------------------------
     */
-    Route::post('/people/{person}/memorial/candle', [PersonController::class, 'lightCandle'])
-        ->name('people.memorial.candle');
+
+    Route::middleware(['auth'])->group(function () {
+        Route::post('/people/{person}/memorial/candle', MemorialCandleController::class)
+            ->name('people.memorial.candle');
+    });
 
     /*
     |--------------------------------------------------------------------------

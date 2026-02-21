@@ -466,52 +466,5 @@ class PersonController extends Controller
 
         return back()->with('success', 'Фото места памяти добавлено');
     }
-    /* ===============================
-     * 🕯 Свеча памяти
-     * =============================== */
-    public function lightCandle(Request $request, Person $person)
-    {
-        if (!$person->death_date) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Свечу можно зажечь только для умершего человека',
-            ], 403);
-        }
-
-        $userId = auth()->id();
-
-        $lastCandle = MemorialCandle::where('person_id', $person->id)
-            ->where('user_id', $userId)
-            ->latest('lit_at')
-            ->first();
-
-        if ($lastCandle && $lastCandle->lit_at->gt(now()->subHours(12))) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Вы уже зажигали свечу недавно 🙏',
-            ], 429);
-        }
-
-        MemorialCandle::create([
-            'person_id' => $person->id,
-            'user_id'   => $userId,
-            'visitor_name' => $request->input('visitor_name'),
-            'lit_at'    => now(),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'active_count' => $person->activeCandlesCount(),
-            'last_candles' => $person->memorialCandles()
-                ->latest('lit_at')
-                ->take(5)
-                ->get()
-                ->map(fn ($c) => [
-                    'name' => $c->visitor_name ?? 'Аноним',
-                    'time' => $c->lit_at?->locale('ru')->diffForHumans(),
-                ]),
-        ]);
-    }
-
 
 }
