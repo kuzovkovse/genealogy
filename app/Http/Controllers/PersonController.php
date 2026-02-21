@@ -147,109 +147,94 @@ class PersonController extends Controller
     /* ===============================
      * 👤 Карточка человека
      * =============================== */
-    public function show(Person $person)
+    public function show(int $id)
     {
-        /**
-         * 🔐 Авторизация
-         * FamilyContext::require() будет вызван внутри policy
-         */
-        $this->authorize('view', $person);
-
         $familyId = FamilyContext::require()->id;
 
-        $couples = $person->couples;
+        $person = Person::query()
+            ->where('family_id', $familyId)
+            ->with([
+                'events',
+                'photos',
+                'memorialPhotos',
+                'documents',
 
-        /* ---------- Кандидаты ---------- */
+                'memorialCandles' => fn ($q) =>
+                $q->latest('lit_at')->limit(5),
 
-        // текущий человек
-        $personId = $person->id;
-        $personGender = $person->gender;
+                'activeCandles',
 
-// 🔹 1. Все люди, которые уже состоят в любой паре
-        $peopleInAnyCouple = Couple::query()
-            ->select(['person_1_id', 'person_2_id'])
-            ->get()
-            ->flatMap(fn ($c) => [$c->person_1_id, $c->person_2_id])
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
+                'militaryServices.documents',
 
-// 🔹 2. Определяем допустимый пол партнёра
-        $allowedGender = match ($personGender) {
-            'male'   => 'female',
-            'female' => 'male',
-            default  => null, // если пол не указан — без фильтра
-        };
+                'parentCouple.person1.parentCouple.person1',
+                'parentCouple.person1.parentCouple.person2',
+                'parentCouple.person2.parentCouple.person1',
+                'parentCouple.person2.parentCouple.person2',
 
-// 🔹 3. Кандидаты в партнёры
-        $marriageCandidates = Person::where('family_id', $familyId)
-            ->where('id', '!=', $personId)              // не сам
-            ->when($allowedGender, fn ($q) =>
-            $q->where('gender', $allowedGender)     // противоположный пол
-            )
-            ->whereNotIn('id', $peopleInAnyCouple)      // только без пары
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get();
+                'couplesAsFirst.person2',
+                'couplesAsSecond.person1',
 
+                'children',
+            ])
+            ->withCount([
+                'photos',
+                'militaryServices',
+                'activeCandles',
+                'children',
+            ])
+            ->findOrFail($id);
 
-        $existingChildrenCandidates = Person::where('family_id', $familyId)
-            ->whereNull('couple_id')
-            ->where('id', '!=', $person->id)
-            ->orderBy('birth_date')
-            ->get();
+        $this->authorize('view', $person);
 
-        /* ---------- Родители ---------- */
-
-        $parentCouple = $person->couple_id
-            ? Couple::with(['person1', 'person2'])->find($person->couple_id)
-            : null;
+        /* ===============================
+           РОДИТЕЛИ
+        =============================== */
 
         $father = null;
         $mother = null;
 
-        if ($parentCouple) {
-            foreach ([$parentCouple->person1, $parentCouple->person2] as $parent) {
+        if ($person->parentCouple) {
+            foreach ([
+                         $person->parentCouple->person1,
+                         $person->parentCouple->person2
+                     ] as $parent) {
+
                 if (!$parent) continue;
 
-                if ($parent->gender === 'male') {
-                    $father = $parent;
-                } elseif ($parent->gender === 'female') {
-                    $mother = $parent;
-                }
+                if ($parent->gender === 'male') $father = $parent;
+                if ($parent->gender === 'female') $mother = $parent;
             }
         }
-
-        /* ---------- Деды / бабушки ---------- */
 
         $grandparentsFather = collect();
         $grandparentsMother = collect();
 
-        if ($father?->couple_id) {
-            $fc = Couple::with(['person1', 'person2'])->find($father->couple_id);
-            if ($fc?->person1) $grandparentsFather->push($fc->person1);
-            if ($fc?->person2) $grandparentsFather->push($fc->person2);
+        if ($father?->parentCouple) {
+            $grandparentsFather = collect([
+                $father->parentCouple->person1,
+                $father->parentCouple->person2,
+            ])->filter();
         }
 
-        if ($mother?->couple_id) {
-            $mc = Couple::with(['person1', 'person2'])->find($mother->couple_id);
-            if ($mc?->person1) $grandparentsMother->push($mc->person1);
-            if ($mc?->person2) $grandparentsMother->push($mc->person2);
+        if ($mother?->parentCouple) {
+            $grandparentsMother = collect([
+                $mother->parentCouple->person1,
+                $mother->parentCouple->person2,
+            ])->filter();
         }
-
-        /* ---------- Братья / сёстры ---------- */
 
         $siblings = collect();
 
         if ($person->couple_id) {
-            $siblings = Person::where('couple_id', $person->couple_id)
+            $siblings = Person::where('family_id', $familyId)
+                ->where('couple_id', $person->couple_id)
                 ->where('id', '!=', $person->id)
-                ->where('family_id', $familyId)
                 ->get();
         }
 
-        /* ---------- Хронология ---------- */
+        /* ===============================
+           ХРОНОЛОГИЯ
+        =============================== */
 
         $timeline = collect();
 
@@ -277,32 +262,41 @@ class PersonController extends Controller
 
         $timeline = $timeline->sortBy('event_date')->values();
 
-        $timeline = app(TimelineNarrativeService::class)
+        $timeline = app(\App\Services\TimelineNarrativeService::class)
             ->enrich($timeline, $person);
 
-        /* ---------- Сервисы ---------- */
+        /* ===============================
+           СЕРВИСЫ
+        =============================== */
 
-        $nextSteps = app(NextStepService::class)->build($person, [
+        $nextSteps = app(\App\Services\NextStepService::class)->build($person, [
             'timeline_count' => $timeline->count(),
-            'photos_count' => $person->photos()->count(),
-            'military_services_count' => $person->militaryServices()->count(),
+            'photos_count' => $person->photos_count,
+            'military_services_count' => $person->military_services_count,
             'military_documents_count' => $person->militaryServices
                 ->flatMap(fn ($s) => $s->documents)
                 ->count(),
         ]);
 
-        $memoryProgress = app(MemoryProgressService::class)->build($person);
+        $memoryProgress = app(\App\Services\MemoryProgressService::class)->build($person);
 
-        $activeCandlesCount = $person->activeCandles()->count();
-        $lastCandles = $person->memorialCandles()->latest('lit_at')->take(5)->get();
+        $activeCandlesCount = $person->active_candles_count;
+        $lastCandles = $person->memorialCandles;
 
-        $todayInHistory = app(TodayInHistoryService::class)->build($person);
-        $recentActivity = app(RecentActivityService::class)->build($person);
+        $todayInHistory = app(\App\Services\TodayInHistoryService::class)->build($person);
+        $recentActivity = app(\App\Services\RecentActivityService::class)->build($person);
 
-        /* ---------- Родство ---------- */
+        /* ===============================
+           🧬 IN-MEMORY RODSTVO (БЕЗ SQL)
+        =============================== */
+
+        // 1️⃣ Загружаем всю семью (1 SQL)
+        $familyPeople = Person::where('family_id', $familyId)->get();
+
+        // 2️⃣ Передаём в новый сервис
+        $kinshipService = new \App\Services\KinshipService($familyPeople);
 
         $extended = request()->boolean('extended');
-        $kinshipService = app(KinshipService::class);
 
         $kinship = (object) [
             'extended' => $extended,
@@ -315,9 +309,12 @@ class PersonController extends Controller
                 : collect(),
         ];
 
+        /* ===============================
+           VIEW
+        =============================== */
+
         return view('people.show', compact(
             'person',
-            'couples',
             'father',
             'mother',
             'grandparentsFather',
@@ -326,8 +323,6 @@ class PersonController extends Controller
             'timeline',
             'activeCandlesCount',
             'lastCandles',
-            'marriageCandidates',
-            'existingChildrenCandidates',
             'kinship',
             'todayInHistory',
             'recentActivity',
@@ -438,6 +433,19 @@ class PersonController extends Controller
         $person->update($data);
 
         return back()->with('success', 'Место памяти обновлено');
+    }
+    public function destroy(Person $person)
+    {
+        $person->update([
+            'burial_cemetery' => null,
+            'burial_city' => null,
+            'burial_place' => null,
+            'burial_description' => null,
+            'burial_lat' => null,
+            'burial_lng' => null,
+        ]);
+
+        return back()->with('success', 'Место памяти удалено');
     }
 
 

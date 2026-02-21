@@ -138,6 +138,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/people/{person}/military', [PersonMilitaryServiceController::class, 'store'])
             ->name('military.store');
 
+        Route::delete('/people/{person}/memorial',
+            [PersonController::class, 'destroy']
+        )->name('people.memorial.destroy');
+
         Route::patch('/people/military/{service}', [PersonMilitaryServiceController::class, 'update'])
             ->name('military.update');
 

@@ -8,210 +8,161 @@ use Illuminate\Support\Collection;
 
 class KinshipService
 {
-    /* =========================================================
-     * 🧓 ПРЕДКИ
-     * ========================================================= */
+    protected Collection $people;
+    protected array $byId = [];
+    protected array $childrenByCouple = [];
+    protected array $couplesByPerson = [];
+    protected array $parentsByPerson = [];
 
-    /**
-     * Получить всех предков человека
-     *
-     * depth:
-     * 1 — родители
-     * 2 — деды / бабушки
-     * 3 — прадеды / прабабушки
-     */
+    public function __construct(Collection $people)
+    {
+        $this->people = $people;
+
+        foreach ($people as $person) {
+            $this->byId[$person->id] = $person;
+
+            if ($person->couple_id) {
+                $this->childrenByCouple[$person->couple_id][] = $person->id;
+            }
+        }
+
+        foreach ($people as $person) {
+            if ($person->couple_id && isset($this->byId[$person->couple_id])) {
+                $couple = $this->byId[$person->couple_id];
+            }
+        }
+
+        foreach ($people as $person) {
+            if ($person->couple_id) {
+                $this->parentsByPerson[$person->id] = $person->couple_id;
+            }
+        }
+
+        // Индекс браков
+        foreach ($people as $person) {
+            $this->couplesByPerson[$person->id] = [];
+        }
+
+        foreach ($people as $person) {
+            if ($person->couple_id) continue;
+
+            // children уже индексированы
+        }
+
+        foreach ($people as $person) {
+            $this->couplesByPerson[$person->id] = [];
+        }
+
+        // строим couples из детей
+        foreach ($this->childrenByCouple as $coupleId => $childrenIds) {
+            foreach ($this->people as $person) {
+                if ($person->couple_id == $coupleId) {
+                    $this->couplesByPerson[$person->id][] = $coupleId;
+                }
+            }
+        }
+    }
+
+    /* ===============================
+       ПРЕДКИ
+    =============================== */
+
     public function getAncestors(Person $person, int $maxDepth = 3): Collection
     {
         $result = collect();
-
-        $this->walkParents(
-            person: $person,
-            depth: 1,
-            maxDepth: $maxDepth,
-            line: null,
-            result: $result
-        );
-
+        $this->walkAncestors($person->id, 1, $maxDepth, null, $result);
         return $result;
     }
 
-    /**
-     * Рекурсивный обход родительской линии
-     */
-    protected function walkParents(
-        Person $person,
+    protected function walkAncestors(
+        int $personId,
         int $depth,
         int $maxDepth,
         ?string $line,
         Collection &$result
     ): void {
-        if ($depth > $maxDepth) {
-            return;
-        }
+        if ($depth > $maxDepth) return;
 
-        $father = $person->father();
-        $mother = $person->mother();
+        $parentCoupleId = $this->parentsByPerson[$personId] ?? null;
+        if (!$parentCoupleId) return;
 
-        // ОТЕЦ
-        if ($father) {
-            $currentLine = $line ?? 'paternal';
+        foreach ($this->childrenByCouple[$parentCoupleId] ?? [] as $parentId) {
+
+            if ($parentId === $personId) continue;
+
+            $currentLine = $line ?? 'unknown';
 
             $result->push([
-                'person' => $father,
+                'person' => $this->byId[$parentId],
                 'depth'  => $depth,
                 'line'   => $currentLine,
             ]);
 
-            $this->walkParents(
-                person: $father,
-                depth: $depth + 1,
-                maxDepth: $maxDepth,
-                line: $currentLine,
-                result: $result
-            );
-        }
-
-        // МАТЬ
-        if ($mother) {
-            $currentLine = $line ?? 'maternal';
-
-            $result->push([
-                'person' => $mother,
-                'depth'  => $depth,
-                'line'   => $currentLine,
-            ]);
-
-            $this->walkParents(
-                person: $mother,
-                depth: $depth + 1,
-                maxDepth: $maxDepth,
-                line: $currentLine,
-                result: $result
+            $this->walkAncestors(
+                $parentId,
+                $depth + 1,
+                $maxDepth,
+                $currentLine,
+                $result
             );
         }
     }
 
-    /* =========================================================
-     * 👨‍👩‍👧 БРАТЬЯ И СЁСТРЫ
-     * ========================================================= */
+    /* ===============================
+       БРАТЬЯ / СЁСТРЫ
+    =============================== */
 
     public function getSiblings(Person $person): Collection
     {
         $siblings = collect();
 
-        $parentCouple = $person->parentCouple;
+        $parentCoupleId = $this->parentsByPerson[$person->id] ?? null;
+        if (!$parentCoupleId) return $siblings;
 
-        if (!$parentCouple) {
-            return $siblings;
-        }
+        foreach ($this->childrenByCouple[$parentCoupleId] ?? [] as $childId) {
 
-        // 1️⃣ Родные (та же родительская пара)
-        $parentCouple->children
-            ->where('id', '!=', $person->id)
-            ->each(function (Person $child) use (&$siblings) {
-                $siblings->push(
-                    new KinshipDTO($child, 'sibling')
-                );
-            });
+            if ($childId === $person->id) continue;
 
-        // 2️⃣ Сводные по отцу (другие браки отца)
-        if ($person->father()) {
-            foreach ($person->father()->couples as $couple) {
-                if ($couple->id === $parentCouple->id) {
-                    continue;
-                }
-
-                foreach ($couple->children as $child) {
-                    if ($child->id === $person->id) {
-                        continue;
-                    }
-
-                    if ($siblings->contains(fn (KinshipDTO $dto) => $dto->person->id === $child->id)) {
-                        continue;
-                    }
-
-                    $siblings->push(
-                        new KinshipDTO($child, 'half_sibling')
-                    );
-                }
-            }
-        }
-
-        // 3️⃣ Сводные по матери (другие браки матери)
-        if ($person->mother()) {
-            foreach ($person->mother()->couples as $couple) {
-                if ($couple->id === $parentCouple->id) {
-                    continue;
-                }
-
-                foreach ($couple->children as $child) {
-                    if ($child->id === $person->id) {
-                        continue;
-                    }
-
-                    if ($siblings->contains(fn (KinshipDTO $dto) => $dto->person->id === $child->id)) {
-                        continue;
-                    }
-
-                    $siblings->push(
-                        new KinshipDTO($child, 'half_sibling')
-                    );
-                }
-            }
+            $siblings->push(
+                new KinshipDTO($this->byId[$childId], 'sibling')
+            );
         }
 
         return $siblings->values();
     }
 
-    /* =========================================================
-     * 👨‍👩‍👧‍👦 2 И 3-ЮРОДНЫЕ
-     * ========================================================= */
+    /* ===============================
+       КУЗЕНЫ
+    =============================== */
 
     public function getExtendedSiblings(Person $person, int $maxDegree = 3): Collection
     {
         $result = collect();
 
-        // Предки текущего человека
-        $myAncestors = $this->getAncestors($person, $maxDegree + 1);
+        $ancestors = $this->getAncestors($person, $maxDegree + 1);
 
-        // Родные + сводные (чтобы исключить)
-        $directSiblingIds = $this->getSiblings($person)
-            ->pluck('person.id')
-            ->toArray();
+        foreach ($ancestors as $ancestorData) {
 
-        foreach ($myAncestors as $ancestorData) {
-            $ancestor = $ancestorData['person'];
-            $myDepth  = $ancestorData['depth'];
+            $ancestorId = $ancestorData['person']->id;
+            $depth = $ancestorData['depth'];
 
-            $descendants = $this->getDescendants($ancestor);
+            foreach ($this->getDescendants($ancestorId) as $descendant) {
 
-            foreach ($descendants as $descendantData) {
-                $relative = $descendantData['person'];
+                if ($descendant['person']->id === $person->id) continue;
 
-                if ($relative->id === $person->id) {
-                    continue;
-                }
+                $degree = $depth + $descendant['depth'] - 2;
 
-                if (in_array($relative->id, $directSiblingIds, true)) {
-                    continue;
-                }
+                if ($degree < 2 || $degree > $maxDegree) continue;
 
-                $relativeDepth = $descendantData['depth'];
-                $degree = $myDepth + $relativeDepth - 2;
-
-                if ($degree < 2 || $degree > $maxDegree) {
-                    continue;
-                }
-
-                if ($result->contains(fn (KinshipDTO $dto) => $dto->person->id === $relative->id)) {
+                if ($result->contains(fn($dto) => $dto->person->id === $descendant['person']->id)) {
                     continue;
                 }
 
                 $result->push(
                     new KinshipDTO(
-                        person: $relative,
-                        kind: 'cousin',
-                        degree: $degree
+                        $descendant['person'],
+                        'cousin',
+                        $degree
                     )
                 );
             }
@@ -220,33 +171,21 @@ class KinshipService
         return $result->values();
     }
 
-    /* =========================================================
-         * РЕМАИНДЕР: текстовое описание родства между двумя людьми
-         * ========================================================= */
-    public function relationFor(User $user, Person $person): string
+    protected function getDescendants(int $personId, int $depth = 1): Collection
     {
-        // "прадеда", "бабушки", "двоюродного деда"
-    }
+        $result = collect();
 
-    /* =========================================================
-     * 👶 ПОТОМКИ
-     * ========================================================= */
+        foreach ($this->couplesByPerson[$personId] ?? [] as $coupleId) {
 
-    protected function getDescendants(Person $person, int $depth = 1, Collection $result = null): Collection
-    {
-        $result ??= collect();
+            foreach ($this->childrenByCouple[$coupleId] ?? [] as $childId) {
 
-        foreach ($person->couples as $couple) {
-            foreach ($couple->children as $child) {
                 $result->push([
-                    'person' => $child,
+                    'person' => $this->byId[$childId],
                     'depth'  => $depth,
                 ]);
 
-                $this->getDescendants(
-                    person: $child,
-                    depth: $depth + 1,
-                    result: $result
+                $result = $result->merge(
+                    $this->getDescendants($childId, $depth + 1)
                 );
             }
         }

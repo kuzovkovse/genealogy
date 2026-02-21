@@ -1,8 +1,11 @@
-<form method="POST" action="{{ route('people.memorial.update', $person) }}">
-    @csrf
-    @method('PATCH')
+<div class="memorial-card">
 
-    <div class="memorial-card">
+    {{-- ===============================
+         UPDATE FORM
+    ================================ --}}
+    <form method="POST" action="{{ route('people.memorial.update', $person) }}">
+        @csrf
+        @method('PATCH')
 
         <div class="mb-3">
             <label class="form-label">📍 Кладбище</label>
@@ -60,13 +63,33 @@
         </details>
 
         <div class="d-flex gap-2">
-            <button class="btn btn-primary">💾 Сохранить</button>
+            <button type="submit" class="btn btn-primary">
+                💾 Сохранить
+            </button>
+
             <button type="button"
                     class="btn btn-outline-secondary"
                     onclick="toggleMemorialEdit()">
                 Отмена
             </button>
         </div>
+    </form>
 
-    </div>
-</form>
+    {{-- ===============================
+         DELETE FORM (ОТДЕЛЬНАЯ)
+    ================================ --}}
+    @if($person->burial_cemetery || $person->burial_city)
+        <form method="POST"
+              action="{{ route('people.memorial.destroy', $person) }}"
+              class="mt-3"
+              onsubmit="return confirm('Удалить место памяти?')">
+            @csrf
+            @method('DELETE')
+
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                🗑 Удалить место памяти
+            </button>
+        </form>
+    @endif
+
+</div>

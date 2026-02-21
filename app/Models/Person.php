@@ -8,10 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Couple;
 use App\Models\MemorialCandle;
 use App\Models\PersonPhoto;
-use App\Services\FamilyContext;
 use App\Models\MemorialPhoto;
 use App\Models\PersonEvent;
 use App\Models\PersonMilitaryService;
+use App\Models\PersonDocument;
 use App\Services\PersonNarrativeService;
 
 class Person extends Model
@@ -33,9 +33,7 @@ class Person extends Model
         'couple_id',
         'public_uuid',
         'family_id',
-        // 🪖 участник войн
         'is_war_participant',
-        // 🕯 место памяти
         'burial_cemetery',
         'burial_city',
         'burial_place',
@@ -44,17 +42,21 @@ class Person extends Model
         'burial_lng',
     ];
 
+    protected $casts = [
+        'is_war_participant' => 'boolean',
+    ];
+
     /* =========================================================
- * 🕊 ЖИВАЯ ФРАЗА
- * ========================================================= */
+     * 🕊 ЖИВАЯ ФРАЗА
+     * ========================================================= */
+
     public function getNarrativePhraseAttribute(): ?string
     {
         return app(PersonNarrativeService::class)->build($this);
     }
 
-
     /* =========================================================
-     * 📸 ФОТО ЖИЗНИ (ВАЖНО!)
+     * 📸 ФОТО ЖИЗНИ
      * ========================================================= */
 
     public function photos(): HasMany
@@ -62,14 +64,10 @@ class Person extends Model
         return $this->hasMany(PersonPhoto::class);
     }
 
-    /* =========================================================
-    * 📸 ФОТО МЕМОРИАЛ
-    * ========================================================= */
     public function memorialPhotos(): HasMany
     {
         return $this->hasMany(MemorialPhoto::class);
     }
-
 
     /* =========================================================
      * 🕯 СВЕЧИ ПАМЯТИ
@@ -82,13 +80,17 @@ class Person extends Model
 
     public function activeCandles(): HasMany
     {
-        return $this->memorialCandles()
+        return $this->hasMany(MemorialCandle::class)
             ->where('lit_at', '>=', now()->subHours(24));
     }
 
+    /**
+     * 🔥 FIX: избегаем лишних SQL при eager loading
+     */
     public function activeCandlesCount(): int
     {
-        return $this->activeCandles()->count();
+        return $this->active_candles_count
+            ?? $this->activeCandles()->count();
     }
 
     /* =========================================================
@@ -121,7 +123,7 @@ class Person extends Model
     }
 
     /**
-     * Все браки человека (Collection, всегда!)
+     * Все браки человека (Collection)
      */
     public function getCouplesAttribute()
     {
@@ -131,7 +133,7 @@ class Person extends Model
     }
 
     /**
-     * Query-версия (если нужно строить запросы)
+     * Query-версия
      */
     public function couples()
     {
@@ -146,12 +148,9 @@ class Person extends Model
     }
 
     /* =========================================================
-        * ФИО
-        * ========================================================= */
+     * ФИО
+     * ========================================================= */
 
-    /**
-     * Аксессор ($person->full_name)
-     */
     public function getFullNameAttribute(): string
     {
         return trim(collect([
@@ -161,28 +160,24 @@ class Person extends Model
         ])->filter()->implode(' '));
     }
 
-    /**
-     * Метод для шаблонов ($person->fullName())
-     * 🔥 НЕ УДАЛЯТЬ — используется в blade
-     */
     public function fullName(): string
     {
         return $this->full_name;
     }
 
-
-
     /* =========================================================
-        * ⏳ СОБЫТИЯ ЖИЗНИ
-        * ========================================================= */
+     * ⏳ СОБЫТИЯ ЖИЗНИ
+     * ========================================================= */
+
     public function events(): HasMany
     {
         return $this->hasMany(PersonEvent::class)
             ->orderBy('event_date');
     }
+
     /* =========================================================
- * 📄 ДОКУМЕНТЫ
- * ========================================================= */
+     * 📄 ДОКУМЕНТЫ
+     * ========================================================= */
 
     public function documents(): HasMany
     {
@@ -190,31 +185,26 @@ class Person extends Model
     }
 
     /* =========================================================
-* 📄 УЧАСТИЕ В ВОЙНАХ
-* ========================================================= */
+     * 🪖 УЧАСТИЕ В ВОЙНАХ
+     * ========================================================= */
+
     public function militaryServices(): HasMany
     {
         return $this->hasMany(PersonMilitaryService::class);
     }
 
-    protected $casts = [
-        'is_war_participant' => 'boolean',
-    ];
-
-
     /* =========================================================
-      * 🏠 FAMILY SCOPE
-      * ========================================================= */
+     * 🏠 FAMILY SCOPE
+     * ========================================================= */
 
     protected static function booted()
     {
         static::addGlobalScope('family', function ($query) {
-            // 🔧 ВАЖНО: не ограничиваем в консоли (tinker, artisan)
+
             if (app()->runningInConsole()) {
                 return;
             }
 
-            // 🔐 Ограничиваем только если есть активная семья
             if (\App\Services\FamilyContext::has()) {
                 $query->where(
                     'family_id',
@@ -223,14 +213,17 @@ class Person extends Model
             }
         });
     }
+
+    /* =========================================================
+     * LIFE PHRASE (FIX N+1)
+     * ========================================================= */
+
     public function getLifePhraseAttribute()
     {
-        // 1️⃣ Участник ВОВ — приоритет
         if ($this->is_war_participant) {
             return 'Участник Великой Отечественной войны';
         }
 
-        // 2️⃣ Если есть даты жизни
         if ($this->birth_date) {
 
             $birth = \Carbon\Carbon::parse($this->birth_date);
@@ -239,23 +232,23 @@ class Person extends Model
                 $death = \Carbon\Carbon::parse($this->death_date);
                 $years = (int) $birth->diffInYears($death);
 
-                if ($years >= 80) {
-                    return "Прожил долгую жизнь — {$years} лет";
-                }
-
-                return "Прожил {$years} лет";
-            } else {
-                $years = (int) $birth->diffInYears(now());
-                return "Живёт уже {$years} лет";
+                return $years >= 80
+                    ? "Прожил долгую жизнь — {$years} лет"
+                    : "Прожил {$years} лет";
             }
+
+            $years = (int) $birth->diffInYears(now());
+            return "Живёт уже {$years} лет";
         }
 
-        // 3️⃣ Если есть дети
-        if ($this->children()->count() > 0) {
-            $count = $this->children()->count();
+        // 🔥 FIX: используем children_count если загружено
+        $childrenCount = $this->children_count
+            ?? $this->children()->count();
 
-            if ($count == 1) return 'Отец одного ребёнка';
-            if ($count <= 4) return "Родитель {$count} детей";
+        if ($childrenCount > 0) {
+
+            if ($childrenCount == 1) return 'Отец одного ребёнка';
+            if ($childrenCount <= 4) return "Родитель {$childrenCount} детей";
 
             return "Глава большой семьи";
         }
