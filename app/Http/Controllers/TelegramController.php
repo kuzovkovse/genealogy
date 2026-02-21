@@ -214,7 +214,12 @@ class TelegramController extends Controller
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
-            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+
+            if ($person->death_date) {
+                $message .= "  🕯 Исполнилось бы {$age} " . $this->plural($age) . "\n\n";
+            } else {
+                $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+            }
         }
 
         $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
@@ -252,7 +257,12 @@ class TelegramController extends Controller
 
             $message .= "• *{$person->first_name} {$person->last_name}*\n";
             $message .= "  📅 " . $birthday->format('d.m') . "\n";
-            $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+
+            if ($person->death_date) {
+                $message .= "  🕯 Исполнилось бы {$age} " . $this->plural($age) . "\n\n";
+            } else {
+                $message .= "  🎂 {$age} " . $this->plural($age) . "\n\n";
+            }
         }
 
         $this->sendMessage($chatId, $message, $this->mainKeyboard(), true);
