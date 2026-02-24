@@ -329,12 +329,20 @@ class PersonController extends Controller
             ->get();
 
         /* ===============================
-   КАНДИДАТЫ В ДЕТИ
-=============================== */
+      КАНДИДАТЫ В ДЕТИ
+   =============================== */
 
         $existingChildrenCandidates = Person::query()
             ->where('family_id', $familyId)
             ->where('id', '!=', $person->id)
+
+            // ❌ Не участвует в союзах как взрослый
+            ->whereDoesntHave('couplesAsFirst')
+            ->whereDoesntHave('couplesAsSecond')
+
+            // ❌ Уже не является чьим-то ребёнком
+            ->whereDoesntHave('parentCouple')
+
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
