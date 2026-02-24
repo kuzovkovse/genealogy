@@ -313,9 +313,17 @@ class PersonController extends Controller
    КАНДИДАТЫ ДЛЯ СВЯЗИ
 =============================== */
 
+        $oppositeGender = $person->gender === 'male' ? 'female' : 'male';
+
         $marriageCandidates = Person::query()
             ->where('family_id', $familyId)
             ->where('id', '!=', $person->id)
+            ->where('gender', $oppositeGender)
+
+            // ❌ У человека не должно быть НИКАКИХ союзов
+            ->whereDoesntHave('couplesAsFirst')
+            ->whereDoesntHave('couplesAsSecond')
+
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
