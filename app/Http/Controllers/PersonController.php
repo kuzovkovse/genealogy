@@ -336,10 +336,6 @@ class PersonController extends Controller
             ->where('family_id', $familyId)
             ->where('id', '!=', $person->id)
 
-            // ❌ Не участвует в союзах как взрослый
-            ->whereDoesntHave('couplesAsFirst')
-            ->whereDoesntHave('couplesAsSecond')
-
             // ❌ Уже не является чьим-то ребёнком
             ->whereDoesntHave('parentCouple')
 
