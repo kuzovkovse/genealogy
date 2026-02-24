@@ -310,6 +310,17 @@ class PersonController extends Controller
         ];
 
         /* ===============================
+   КАНДИДАТЫ ДЛЯ СВЯЗИ
+=============================== */
+
+        $marriageCandidates = Person::query()
+            ->where('family_id', $familyId)
+            ->where('id', '!=', $person->id)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        /* ===============================
            VIEW
         =============================== */
 
@@ -327,6 +338,8 @@ class PersonController extends Controller
             'todayInHistory',
             'recentActivity',
             'nextSteps',
+            'memoryProgress',
+            'marriageCandidates',
             'memoryProgress'
         ));
     }
