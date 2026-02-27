@@ -13,7 +13,6 @@ class CouplePolicy
      */
     public function create(User $user): bool
     {
-        // создавать могут owner / editor (middleware уже ограничивает)
         return FamilyContext::hasRole(['owner', 'editor']);
     }
 
@@ -31,21 +30,19 @@ class CouplePolicy
      */
     public function delete(User $user, Couple $couple): bool
     {
-        // логика как у manageChildren/update (owner/editor + activeFamily)
         return $this->update($user, $couple);
     }
 
     /**
-     * Добавление / удаление детей
+     * Управление детьми (добавление / отвязка)
      */
     public function manageChildren(User $user, Couple $couple): bool
     {
-        return $this->belongsToActiveFamily($couple)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        return $this->update($user, $couple);
     }
 
     /**
-     * 🔑 Проверка принадлежности пары активной семье
+     * Проверка принадлежности пары активной семье
      */
     protected function belongsToActiveFamily(Couple $couple): bool
     {
