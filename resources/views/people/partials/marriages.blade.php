@@ -325,12 +325,34 @@
                             @endif
                         </div>
 
-                        @can('update', $couple)
-                            <a href="{{ route('couples.edit', $couple) }}"
-                               class="edit-link">
-                                ✏
-                            </a>
-                        @endcan
+                        <div class="d-flex align-items-center gap-2">
+
+                            @can('update', $couple)
+                                <a href="{{ route('couples.edit', $couple) }}"
+                                   class="edit-link"
+                                   title="Редактировать союз">
+                                    ✏
+                                </a>
+                            @endcan
+
+                            @can('delete', $couple)
+                                <form method="POST"
+                                      action="{{ route('couples.destroy', $couple) }}"
+                                      class="m-0"
+                                      onsubmit="return confirm('Удалить этот союз? Если есть дети — сначала их нужно отвязать.')">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit"
+                                            class="edit-link"
+                                            style="border:none; background:none;"
+                                            title="Удалить союз">
+                                        🗑
+                                    </button>
+                                </form>
+                            @endcan
+
+                        </div>
 
                     </div>
 

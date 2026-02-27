@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Person;
 use App\Models\Couple;
 use Illuminate\Http\Request;
 use App\Services\FamilyContext;
+
 
 class CoupleController extends Controller
 {
@@ -130,6 +132,24 @@ class CoupleController extends Controller
         return redirect()
             ->route('people.show', $couple->person_1_id)
             ->with('success', 'Связь обновлена');
+    }
+
+    public function destroy(Couple $couple)
+    {
+        $this->authorize('delete', $couple);
+
+        // Подстрахуемся: загружаем детей
+        $couple->loadCount('children');
+
+        if (($couple->children_count ?? 0) > 0) {
+            return back()->with('error', 'Нельзя удалить союз: к нему привязаны дети. Сначала отвяжите детей от этой семьи.');
+        }
+
+        DB::transaction(function () use ($couple) {
+            $couple->delete();
+        });
+
+        return back()->with('success', 'Союз удалён.');
     }
 
 }

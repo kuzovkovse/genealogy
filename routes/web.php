@@ -174,6 +174,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::put('/couples/{couple}', [CoupleController::class, 'update'])
             ->name('couples.update');
+
+        Route::delete('/couples/{couple}', [\App\Http\Controllers\CoupleController::class, 'destroy'])
+            ->name('couples.destroy');
     });
 
     /*

@@ -31,8 +31,8 @@ class CouplePolicy
      */
     public function delete(User $user, Couple $couple): bool
     {
-        return $this->belongsToActiveFamily($couple)
-            && FamilyContext::hasRole(['owner', 'editor']);
+        // логика как у manageChildren/update (owner/editor + activeFamily)
+        return $this->update($user, $couple);
     }
 
     /**
