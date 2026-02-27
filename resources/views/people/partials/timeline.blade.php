@@ -1,5 +1,9 @@
 @if($timeline->isNotEmpty())
 
+    @php
+        $hasDeath = $person->death_date ? true : false;
+    @endphp
+
     <style>
         /* ===================================
            HISTORICAL TIMELINE STYLE
@@ -20,10 +24,30 @@
             background: linear-gradient(to bottom, #d4af37, #e5e7eb);
         }
 
+        /* Если есть смерть — линия мягко гаснет */
+        .timeline-wrapper.death-ended::before {
+            background: linear-gradient(to bottom, #d4af37 75%, transparent 100%);
+        }
+
         .timeline-event {
             position: relative;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+            opacity: 0;
+            transform: translateY(6px);
+            animation: fadeUp 0.5s ease forwards;
         }
+
+        /* Анимационные задержки */
+        .timeline-event:nth-child(1) { animation-delay: 0.05s; }
+        .timeline-event:nth-child(2) { animation-delay: 0.1s; }
+        .timeline-event:nth-child(3) { animation-delay: 0.15s; }
+        .timeline-event:nth-child(4) { animation-delay: 0.2s; }
+        .timeline-event:nth-child(5) { animation-delay: 0.25s; }
+        .timeline-event:nth-child(6) { animation-delay: 0.3s; }
+        .timeline-event:nth-child(7) { animation-delay: 0.35s; }
+        .timeline-event:nth-child(8) { animation-delay: 0.4s; }
+        .timeline-event:nth-child(9) { animation-delay: 0.45s; }
+        .timeline-event:nth-child(10){ animation-delay: 0.5s; }
 
         .timeline-dot {
             position: absolute;
@@ -35,6 +59,12 @@
             background: #d4af37;
             border: 2px solid #fff;
             box-shadow: 0 0 0 2px #f3f4f6;
+        }
+
+        /* Финальная точка смерти */
+        .timeline-dot.death-dot {
+            background: #374151;
+            box-shadow: 0 0 0 3px #11182722;
         }
 
         .timeline-icon {
@@ -60,11 +90,15 @@
             margin-top: 2px;
         }
 
+        /* Narrative */
         .timeline-narrative {
             font-size: 11px;
             color: #9ca3af;
             text-align: center;
-            margin: 4px 0 10px 0;
+            margin: 4px 0 8px 0;
+            opacity: 0;
+            animation: fadeNarrative 0.6s ease forwards;
+            animation-delay: 0.2s;
         }
 
         .timeline-actions button {
@@ -79,27 +113,6 @@
             color: #111827;
         }
 
-        /* ===============================
-   TIMELINE ANIMATION
-=============================== */
-
-        .timeline-event {
-            opacity: 0;
-            transform: translateY(6px);
-            animation: fadeUp 0.5s ease forwards;
-        }
-
-        .timeline-event:nth-child(1) { animation-delay: 0.05s; }
-        .timeline-event:nth-child(2) { animation-delay: 0.1s; }
-        .timeline-event:nth-child(3) { animation-delay: 0.15s; }
-        .timeline-event:nth-child(4) { animation-delay: 0.2s; }
-        .timeline-event:nth-child(5) { animation-delay: 0.25s; }
-        .timeline-event:nth-child(6) { animation-delay: 0.3s; }
-        .timeline-event:nth-child(7) { animation-delay: 0.35s; }
-        .timeline-event:nth-child(8) { animation-delay: 0.4s; }
-        .timeline-event:nth-child(9) { animation-delay: 0.45s; }
-        .timeline-event:nth-child(10){ animation-delay: 0.5s; }
-
         @keyframes fadeUp {
             to {
                 opacity: 1;
@@ -107,19 +120,11 @@
             }
         }
 
-        /* Narrative тоже анимируем, но мягче */
-        .timeline-narrative {
-            opacity: 0;
-            animation: fadeNarrative 0.6s ease forwards;
-            animation-delay: 0.2s;
-        }
-
         @keyframes fadeNarrative {
             to {
                 opacity: 1;
             }
         }
-
     </style>
 
     <div class="timeline-card mb-4">
@@ -195,7 +200,7 @@
 
         {{-- TIMELINE --}}
         <div id="timeline-body">
-            <div class="timeline-wrapper">
+            <div class="timeline-wrapper {{ $hasDeath ? 'death-ended' : '' }}">
 
                 @foreach($timeline as $event)
 
@@ -203,9 +208,10 @@
                         $isSystem = $event['is_system'] ?? false;
                         $model = $event['model'] ?? null;
                         $eventId = $model?->id;
+                        $isDeath = ($event['title'] ?? '') === 'Смерть';
                     @endphp
 
-                    {{-- Narrative (прошло N лет и т.п.) --}}
+                    {{-- Narrative --}}
                     @if(($event['type'] ?? null) === 'narrative')
                         <div class="timeline-narrative">
                             {{ str_replace("\n", ' · ', $event['text']) }}
@@ -215,7 +221,7 @@
 
                     <div class="timeline-event">
 
-                        <div class="timeline-dot"></div>
+                        <div class="timeline-dot {{ $isDeath ? 'death-dot' : '' }}"></div>
 
                         <div class="d-flex justify-content-between align-items-start">
 
@@ -263,56 +269,6 @@
 
                         </div>
 
-                        {{-- EDIT --}}
-                        @if(!$isSystem && $model)
-                            <div id="event-edit-{{ $eventId }}"
-                                 style="display:none; margin-top:6px;">
-                                <form method="POST"
-                                      action="{{ route('events.update', [$person, $eventId]) }}">
-                                    @csrf
-                                    @method('PATCH')
-
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-md-3">
-                                            <input type="date"
-                                                   name="event_date"
-                                                   value="{{ $event['event_date'] }}"
-                                                   class="form-control form-control-sm"
-                                                   required>
-                                        </div>
-
-                                        <div class="col-md-2">
-                                            <input type="text"
-                                                   name="icon"
-                                                   value="{{ $event['icon'] }}"
-                                                   class="form-control form-control-sm">
-                                        </div>
-
-                                        <div class="col-md-7">
-                                            <input type="text"
-                                                   name="title"
-                                                   value="{{ $event['title'] }}"
-                                                   class="form-control form-control-sm"
-                                                   required>
-                                        </div>
-                                    </div>
-
-                                    <textarea name="description"
-                                              class="form-control form-control-sm mb-2"
-                                              rows="2">{{ $event['description'] }}</textarea>
-
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-primary">💾</button>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-secondary"
-                                                onclick="toggleEventEdit('{{ $eventId }}')">
-                                            Отмена
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        @endif
-
                     </div>
 
                 @endforeach
@@ -327,23 +283,3 @@
     </div>
 
 @endif
-
-<script>
-    function toggleTimeline() {
-        const el = document.getElementById('timeline-body');
-        if (!el) return;
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function toggleAddEvent() {
-        const el = document.getElementById('add-event-form');
-        if (!el) return;
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function toggleEventEdit(id) {
-        const el = document.getElementById('event-edit-' + id);
-        if (!el) return;
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-</script>
