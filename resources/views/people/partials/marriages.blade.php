@@ -21,10 +21,6 @@
         margin-top: 4px;
     }
 
-    /* ==============================
-       КАРТОЧКА СВЯЗИ (Историческая)
-    ===============================*/
-
     .marriage-card {
         background: linear-gradient(to bottom right, #ffffff, #fafafa);
         border-radius: 18px;
@@ -32,6 +28,7 @@
         border-left: 4px solid #d1d5db;
         transition: all .25s ease;
         position: relative;
+        overflow: hidden;
     }
 
     .marriage-card:hover {
@@ -43,9 +40,7 @@
     .relation-civil    { border-left-color: #6366f1; }
     .relation-parents  { border-left-color: #06b6d4; }
 
-    .marriage-ended {
-        opacity: .95;
-    }
+    .marriage-ended { opacity: .95; }
 
     .marriage-header {
         display: flex;
@@ -78,9 +73,9 @@
         margin-top: 4px;
     }
 
-    /* Мини таймлайн */
+    /* ===== Мини-таймлайн брака (без конфликта) ===== */
 
-    .timeline {
+    .marriage-mini-timeline {
         height: 4px;
         background: #e5e7eb;
         border-radius: 999px;
@@ -89,14 +84,14 @@
         overflow: hidden;
     }
 
-    .timeline-bar {
+    .marriage-mini-timeline-bar {
         height: 100%;
         background: linear-gradient(to right, #c9a646, #e5d3a1);
         border-radius: 999px;
         width: 100%;
     }
 
-    .timeline-ended {
+    .marriage-mini-timeline-ended {
         background: linear-gradient(to right, #9ca3af, #d1d5db);
     }
 
@@ -168,21 +163,12 @@
         color: #111827;
     }
 
-    /* ===============================
-   Subtle Grain Texture
-================================ */
-
-    .marriage-card {
-        position: relative;
-        overflow: hidden
-    }
-
     .marriage-card::before {
         content: "";
         position: absolute;
         inset: 0;
         pointer-events: none;
-        opacity: 0.035; /* регулируй 0.02–0.06 */
+        opacity: 0.035;
         mix-blend-mode: multiply;
         background-image: url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'>\
@@ -193,7 +179,6 @@
 </svg>");
         background-size: 200px 200px;
     }
-
 </style>
 
 @php
