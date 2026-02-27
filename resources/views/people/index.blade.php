@@ -119,6 +119,18 @@
             margin-bottom: 20px;
             margin-left: 20px;
         }
+
+        .tree-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 5; /* ВАЖНО */
+            cursor: pointer;
+        }
+
+        .stretched-link {
+            z-index: 1;
+        }
     </style>
 
     {{-- ================= HEADER ================= --}}
