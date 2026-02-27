@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 use App\Models\Couple;
 use App\Models\MemorialCandle;
 use App\Models\PersonPhoto;
@@ -16,6 +18,8 @@ use App\Services\PersonNarrativeService;
 
 class Person extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'first_name',

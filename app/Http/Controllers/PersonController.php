@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Person;
 use App\Models\Couple;
@@ -367,8 +368,41 @@ class PersonController extends Controller
             'memoryProgress'
         ));
     }
+    /* ===============================
+         * ✏️ Удаление (мягкое)
+         * =============================== */
+    public function destroy(int $id)
+    {
+        $familyId = FamilyContext::require()->id;
 
+        $person = Person::query()
+            ->where('family_id', $familyId)
+            ->withCount([
+                'couplesAsFirst',
+                'couplesAsSecond',
+                'children',
+            ])
+            ->with(['parentCouple'])
+            ->findOrFail($id);
 
+        $this->authorize('delete', $person);
+
+        $hasRelations =
+            ($person->couples_as_first_count ?? 0) > 0 ||
+            ($person->couples_as_second_count ?? 0) > 0 ||
+            ($person->children_count ?? 0) > 0 ||
+            (bool) $person->parentCouple;
+
+        if ($hasRelations) {
+            return back()->with('error', 'Нельзя удалить человека: у него уже есть семейные связи (родители/партнёр/дети). Сначала удалите связи или выберите другого дубля.');
+        }
+
+        DB::transaction(function () use ($person) {
+            $person->delete(); // soft delete
+        });
+
+        return redirect()->route('people.index')->with('success', 'Человек удалён.');
+    }
     /* ===============================
      * ✏️ Редактирование
      * =============================== */
@@ -471,8 +505,17 @@ class PersonController extends Controller
 
         return back()->with('success', 'Место памяти обновлено');
     }
-    public function destroy(Person $person)
+    public function destroyMemorialPlace(Person $person)
     {
+        $familyId = FamilyContext::require()->id;
+
+        // подстраховка по family_id
+        $person = Person::query()
+            ->where('family_id', $familyId)
+            ->findOrFail($person->id);
+
+        $this->authorize('update', $person);
+
         $person->update([
             'burial_cemetery' => null,
             'burial_city' => null,
@@ -484,8 +527,6 @@ class PersonController extends Controller
 
         return back()->with('success', 'Место памяти удалено');
     }
-
-
     /* ===============================
              * ФОТО МЕСТА ЗАХОРОНЕНИЯ
              * =============================== */

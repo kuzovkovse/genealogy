@@ -15,7 +15,6 @@ class PersonPolicy
     {
         return FamilyContext::belongsToFamily($person->family_id);
     }
-
     /**
      * Создание человека
      * (роль проверяется middleware)
@@ -38,7 +37,13 @@ class PersonPolicy
      */
     public function delete(User $user, Person $person): bool
     {
-        return FamilyContext::belongsToFamily($person->family_id);
+        // принадлежит ли человек активной семье
+        if (!\App\Services\FamilyContext::belongsToFamily($person->family_id)) {
+            return false;
+        }
+
+        // роль пользователя в семье: owner/editor
+        return in_array(\App\Services\FamilyContext::role(), ['owner', 'editor'], true);
     }
 
     /**

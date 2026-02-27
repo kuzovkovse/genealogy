@@ -10,7 +10,7 @@
 @endfamilyRole
 
 @section('content')
-      <style>
+    <style>
         /* ===== HERO ===== */
         .person-hero {
             display: flex;
@@ -101,13 +101,13 @@
             color: #374151;
         }
 
-         .biography-card {
-             background: #fff;
-             border-radius: 16px;
-             padding: 24px;
-             box-shadow: 0 8px 24px rgba(0,0,0,.05);
-             margin-bottom: 32px;
-         }
+        .biography-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.05);
+            margin-bottom: 32px;
+        }
 
         .timeline-card {
             background: #fff;
@@ -128,7 +128,7 @@
             font-style: italic;
         }
 
-    .badge.male {
+        .badge.male {
             background: #e0ecff;
             color: #1e3a8a;
         }
@@ -147,6 +147,25 @@
             display: flex;
             gap: 10px;
             align-items: center;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            z-index: 10;
+        }
+
+        .hero-actions .action-btn {
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* ===== PARENTS ===== */
@@ -235,7 +254,7 @@
         }
 
         /* sticky-кнопки */
-                .hero-actions {
+        .hero-actions {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -455,7 +474,7 @@
         }
 
 
-      </style>
+    </style>
 
     @php
         use Carbon\Carbon;
@@ -471,7 +490,7 @@
         $isMemorial = (bool) $person->death_date;
     @endphp
     <div class="{{ $isMemorial ? 'memorial' : '' }}">
-    {{-- ================= HERO ================= --}}
+        {{-- ================= HERO ================= --}}
         <div class="person-hero {{ $person->death_date ? 'dead' : '' }}">
 
             {{-- ЛЕВАЯ ЧАСТЬ --}}
@@ -551,29 +570,49 @@
 
             {{-- ПРАВАЯ ЧАСТЬ --}}
             <div class="hero-actions">
+
                 @can('update', $person)
-                    <a href="{{ route('people.edit', $person) }}" class="btn btn-outline-primary">
+                    <a href="{{ route('people.edit', $person) }}"
+                       class="btn btn-outline-primary btn-sm action-btn">
                         ✏️ Редактировать
                     </a>
                 @endcan
-                <div class="form-check form-switch ms-2">
+
+                @can('delete', $person)
+                    <form method="POST"
+                          action="{{ route('people.destroy', $person) }}"
+                          class="m-0"
+                          onsubmit="return confirm('Удалить человека? Если у него есть связи, удаление будет запрещено.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm action-btn">
+                            🗑 Удалить
+                        </button>
+                    </form>
+                @endcan
+
+                <div class="form-check form-switch ms-2 d-flex align-items-center">
                     <input
                         class="form-check-input"
                         type="checkbox"
                         id="extendedKinshipToggle"
                         {{ $kinship->extended ? 'checked' : '' }}
                     >
-                    <label class="form-check-label small text-muted" for="extendedKinshipToggle">
+                    <label class="form-check-label small text-muted ms-2 mb-0"
+                           for="extendedKinshipToggle">
                         Расширенное родство
                     </label>
                 </div>
+
                 @if($person->public_uuid)
                     <a href="{{ route('people.public', ['uuid' => $person->public_uuid]) }}"
                        target="_blank"
-                       class="btn btn-outline-secondary ms-2">
+                       class="btn btn-outline-secondary btn-sm action-btn">
                         🔗 Публичная ссылка
                     </a>
                 @endif
+
             </div>
 
         </div>
@@ -583,7 +622,7 @@
 
         <div class="parents-grid kinship-line">
 
-        @foreach([ 'Отец' => $father ?? null, 'Мать' => $mother ?? null ] as $label => $parent)
+            @foreach([ 'Отец' => $father ?? null, 'Мать' => $mother ?? null ] as $label => $parent)
                 @if($parent)
                     @php
                         $pb = $parent->birth_date ? Carbon::parse($parent->birth_date) : null;
@@ -651,16 +690,16 @@
         @include('people.partials.siblings', [
             'siblings' => $kinship->siblings
         ])
-    {{-- ================= БРАКИ ================= --}}
+        {{-- ================= БРАКИ ================= --}}
         <div id="marriages-block">
-        @include('people.partials.marriages')
+            @include('people.partials.marriages')
         </div>
-    {{-- ================== МЕСТО ПАМЯТИ ================== --}}
-    @include('people.partials.memorial-place')
+        {{-- ================== МЕСТО ПАМЯТИ ================== --}}
+        @include('people.partials.memorial-place')
         {{-- ================= Сегодня в истории ================= --}}
         @include('people.partials.today-in-history')
-    {{-- ================= ХРОНОЛОГИЯ ================= --}}
-    @include('people.partials.timeline')
+        {{-- ================= ХРОНОЛОГИЯ ================= --}}
+        @include('people.partials.timeline')
         {{-- ================== БИОГРАФИЯ ================== --}}
         <div id="biography-block" class="biography-card">
 
@@ -721,33 +760,33 @@
         @if($person->is_war_participant)
             @include('people.partials.military-service')
         @endif
-    {{-- ================== ФОТОГАЛЛЕРЕЯ ================== --}}
-    @include('people.partials.gallery')
-    {{-- ================== ДОБАВЛЕНИЕ ДОКУМЕНТОВ ================== --}}
-    @include('people.partials.documents')
+        {{-- ================== ФОТОГАЛЛЕРЕЯ ================== --}}
+        @include('people.partials.gallery')
+        {{-- ================== ДОБАВЛЕНИЕ ДОКУМЕНТОВ ================== --}}
+        @include('people.partials.documents')
         {{-- ================== Последние изменения ================== --}}
         @include('people.partials.recent-activity')
-        {{-- ================== ПРОГРЕСС БАР ================== --}}
+        {{-- ================== ПРОГРРЕСС БАР ================== --}}
         @include('people.partials.memory-progress', [
             'progress' => $memoryProgress
         ])
 
 
         <a href="{{ route('people.index') }}" class="btn btn-link">← Назад</a>
-    <script>
-        function toggleBiographyEdit() {
-            const view = document.getElementById('biography-view');
-            const edit = document.getElementById('biography-edit');
+        <script>
+            function toggleBiographyEdit() {
+                const view = document.getElementById('biography-view');
+                const edit = document.getElementById('biography-edit');
 
-            if (edit.style.display === 'none') {
-                view.style.display = 'none';
-                edit.style.display = 'block';
-            } else {
-                edit.style.display = 'none';
-                view.style.display = 'block';
+                if (edit.style.display === 'none') {
+                    view.style.display = 'none';
+                    edit.style.display = 'block';
+                } else {
+                    edit.style.display = 'none';
+                    view.style.display = 'block';
+                }
             }
-        }
-    </script>
+        </script>
         <script>
             function toggleMemorialEdit() {
                 const view = document.getElementById('memorial-view');
@@ -822,30 +861,30 @@
         })();
     </script>
 
-      <script>
-          document.addEventListener('click', function (e) {
-              const btn = e.target.closest('.memory-progress-link');
-              if (!btn) return;
+    <script>
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.memory-progress-link');
+            if (!btn) return;
 
-              // 📜 Скролл
-              if (btn.dataset.scroll) {
-                  const target = document.querySelector(btn.dataset.scroll);
-                  if (target) {
-                      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-              }
+            // 📜 Скролл
+            if (btn.dataset.scroll) {
+                const target = document.querySelector(btn.dataset.scroll);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
 
-              // 🎬 Экшены
-              if (btn.dataset.action === 'open-gallery-form') {
-                  if (typeof toggleAddLifePhoto === 'function') {
-                      toggleAddLifePhoto();
-                      setTimeout(() => {
-                          const form = document.getElementById('add-life-photo');
-                          form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 200);
-                  }
-              }
-          });
-      </script>
+            // 🎬 Экшены
+            if (btn.dataset.action === 'open-gallery-form') {
+                if (typeof toggleAddLifePhoto === 'function') {
+                    toggleAddLifePhoto();
+                    setTimeout(() => {
+                        const form = document.getElementById('add-life-photo');
+                        form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 200);
+                }
+            }
+        });
+    </script>
 
 @endsection
