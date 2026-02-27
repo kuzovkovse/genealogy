@@ -55,7 +55,7 @@
         </div>
 
         <div class="tree-button"
-             onclick="event.stopPropagation(); window.location='{{ route('tree.view', $person) }}'">
+             onclick="event.stopPropagation(); event.preventDefault(); window.location='{{ route('tree.view', $person) }}'">
             🧬
         </div>
 
