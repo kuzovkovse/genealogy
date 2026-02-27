@@ -179,6 +179,13 @@
 </svg>");
         background-size: 200px 200px;
     }
+    .spouse-card:hover {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 6px;
+        transform: translateY(-1px);
+    }
+
 </style>
 
 @php
@@ -342,14 +349,19 @@
                     </div>
 
                     @if($spouse)
-                        <div class="spouse-card">
+                        <div class="spouse-card"
+                             onclick="window.location='{{ route('people.show', $spouse) }}'"
+                             style="cursor:pointer; transition:all .2s ease;">
+
                             <img class="spouse-photo"
                                  src="{{ $spouse->photo
-                                    ? asset('storage/'.$spouse->photo)
-                                    : route('avatar', [
-                                        'name' => mb_substr($spouse->first_name,0,1).mb_substr($spouse->last_name ?? '',0,1),
-                                        'gender' => $spouse->gender
-                                    ]) }}">
+                ? asset('storage/'.$spouse->photo)
+                : route('avatar', [
+                    'name' => mb_substr($spouse->first_name,0,1)
+                             .mb_substr($spouse->last_name ?? '',0,1),
+                    'gender' => $spouse->gender
+                ]) }}">
+
                             <div>
                                 <strong>
                                     {{ $spouse->last_name }}
@@ -357,11 +369,12 @@
                                     {{ $spouse->patronymic }}
                                 </strong><br>
                                 <small class="text-muted">
-                                    {{ $spouse->birth_date ? Carbon::parse($spouse->birth_date)->year : '?' }}
+                                    {{ $spouse->birth_date ? \Carbon\Carbon::parse($spouse->birth_date)->year : '?' }}
                                     —
-                                    {{ $spouse->death_date ? Carbon::parse($spouse->death_date)->year : 'н.в.' }}
+                                    {{ $spouse->death_date ? \Carbon\Carbon::parse($spouse->death_date)->year : 'н.в.' }}
                                 </small>
                             </div>
+
                         </div>
                     @endif
 
