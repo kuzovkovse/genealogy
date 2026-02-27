@@ -78,6 +78,21 @@ class CoupleController extends Controller
             ->with('success', 'Связь успешно добавлена');
     }
 
+    public function detachChild(\App\Models\Couple $couple, \App\Models\Person $child)
+    {
+        $this->authorize('manageChildren', $couple);
+
+        // Проверяем, что ребёнок действительно принадлежит этой семье
+        if ($child->couple_id !== $couple->id) {
+            abort(404);
+        }
+
+        $child->update([
+            'couple_id' => null
+        ]);
+
+        return back()->with('success', 'Ребёнок отвязан от семьи.');
+    }
     public function edit(Couple $couple)
     {
         $this->authorize('update', $couple);

@@ -361,19 +361,38 @@
                     @if($children->count())
                         <div class="children">
                             @foreach($children as $child)
-                                <div class="child-card"
-                                     onclick="window.location.href='{{ route('people.show', $child) }}'">
-                                    <img class="child-photo"
-                                         src="{{ $child->photo
-                                            ? asset('storage/'.$child->photo)
-                                            : route('avatar', [
-                                                'name' => mb_substr($child->first_name,0,1).mb_substr($child->last_name ?? '',0,1),
-                                                'gender' => $child->gender
-                                            ]) }}">
-                                    <div class="child-name">{{ $child->first_name }}</div>
-                                    <div class="child-role">
-                                        {{ $child->gender === 'male' ? 'Сын' : 'Дочь' }}
+                                <div class="child-card position-relative">
+
+                                    @can('manageChildren', $couple)
+                                        <form method="POST"
+                                              action="{{ route('couples.children.detach', [$couple, $child]) }}"
+                                              onsubmit="return confirm('Отвязать ребёнка от этой семьи?')"
+                                              style="position:absolute; top:4px; right:4px;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    style="background:none; border:none; color:#9ca3af; font-size:12px;">
+                                                ✖
+                                            </button>
+                                        </form>
+                                    @endcan
+
+                                    <div onclick="window.location.href='{{ route('people.show', $child) }}'">
+                                        <img class="child-photo"
+                                             src="{{ $child->photo
+                    ? asset('storage/'.$child->photo)
+                    : route('avatar', [
+                        'name' => mb_substr($child->first_name,0,1)
+                                 .mb_substr($child->last_name ?? '',0,1),
+                        'gender' => $child->gender
+                    ]) }}">
+
+                                        <div class="child-name">{{ $child->first_name }}</div>
+                                        <div class="child-role">
+                                            {{ $child->gender === 'male' ? 'Сын' : 'Дочь' }}
+                                        </div>
                                     </div>
+
                                 </div>
                             @endforeach
                         </div>

@@ -207,6 +207,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/people/{person}/memorial-place', [\App\Http\Controllers\PersonController::class, 'destroyMemorialPlace'])
             ->name('people.memorial-place.destroy');
 
+        Route::delete('/couples/{couple}/children/{child}',
+            [\App\Http\Controllers\CoupleController::class, 'detachChild'])
+            ->name('couples.children.detach');
+
         });
 
 
