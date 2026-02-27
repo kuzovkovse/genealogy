@@ -260,7 +260,67 @@ class PersonController extends Controller
                 'model' => $event,
             ]);
         }
+        /* ===============================
+           💍 БРАКИ
+        =============================== */
 
+        foreach ($person->couples as $couple) {
+
+            $spouse = $couple->person_1_id === $person->id
+                ? $couple->person2
+                : $couple->person1;
+
+            if ($couple->married_at) {
+                $timeline->push([
+                    'event_date' => $couple->married_at,
+                    'title' => 'Брак с ' . $spouse?->fullName(),
+                    'description' => null,
+                    'icon' => '💍',
+                    'is_system' => true,
+                    'model' => null,
+                ]);
+            }
+
+            if ($couple->divorced_at) {
+                $timeline->push([
+                    'event_date' => $couple->divorced_at,
+                    'title' => 'Развод',
+                    'description' => 'Окончание союза',
+                    'icon' => '💔',
+                    'is_system' => true,
+                    'model' => null,
+                ]);
+            }
+
+            /* ===============================
+               👶 РОЖДЕНИЕ ДЕТЕЙ
+            =============================== */
+
+            foreach ($couple->children as $child) {
+                if ($child->birth_date) {
+                    $timeline->push([
+                        'event_date' => $child->birth_date,
+                        'title' => 'Рождение ребёнка: ' . $child->first_name,
+                        'description' => null,
+                        'icon' => '👶',
+                        'is_system' => true,
+                        'model' => null,
+                    ]);
+                }
+            }
+        }
+
+        // 💀 Смерть
+        if ($person->death_date) {
+            $timeline->push([
+                'event_date' => $person->death_date,
+                'title' => 'Смерть',
+                'description' => null,
+                'icon' => '🕯',
+                'is_system' => true,
+                'model' => null,
+            ]);
+        }
         $timeline = $timeline->sortBy('event_date')->values();
 
         $timeline = app(\App\Services\TimelineNarrativeService::class)
